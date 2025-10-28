@@ -1,0 +1,33 @@
+# Systemd service file for Django AssetTrack
+# Place this file in /etc/systemd/system/assettrack.service
+
+[Unit]
+Description=Django AssetTrack Application
+After=network.target postgresql.service
+Requires=postgresql.service
+
+[Service]
+Type=exec
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/assettrack
+Environment=PATH=/var/www/assettrack/venv/bin
+ExecStart=/var/www/assettrack/venv/bin/gunicorn --workers 3 --bind 127.0.0.1:8000 assettrack_django.wsgi:application
+ExecReload=/bin/kill -s HUP $MAINPID
+Restart=always
+RestartSec=10
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/www/assettrack
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=assettrack
+
+[Install]
+WantedBy=multi-user.target

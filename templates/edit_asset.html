@@ -1,0 +1,394 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Asset | AssetTrack{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700">
+        <div class="px-6 py-5 border-b border-slate-700">
+            <h2 class="text-lg font-semibold text-white">Edit Asset</h2>
+        </div>
+        
+        <div class="px-6 py-6">
+            <form method="post" class="space-y-6">
+                {% csrf_token %}
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="name" class="block text-sm font-medium text-slate-300 mb-2">Asset Name</label>
+                        <input type="text" name="name" id="name" value="{{ asset.name }}" required class="w-full px-3 py-2 border border-slate-600 rounded-md shadow-sm bg-slate-700 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    
+                    <div>
+                        <label for="asset_type" class="block text-sm font-medium text-slate-300 mb-2">Asset Type</label>
+                        <div class="relative">
+                            <input type="text" name="asset_type" id="asset_type" required 
+                                   class="w-full px-3 py-2 border border-slate-600 rounded-md shadow-sm bg-slate-700 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500" 
+                                   placeholder="Select or type asset type" 
+                                   value="{% if asset.asset_type == 'laptop' %}Laptop{% elif asset.asset_type == 'desktop' %}Desktop{% elif asset.asset_type == 'tablet' %}Tablet{% elif asset.asset_type == 'phone' %}Phone{% elif asset.asset_type == 'monitor' %}Monitor{% elif asset.asset_type == 'keyboard' %}Keyboard{% elif asset.asset_type == 'mouse' %}Mouse{% elif asset.asset_type == 'headphones' %}Headphones{% elif asset.asset_type == 'other' %}Other{% else %}{{ asset.asset_type|title }}{% endif %}"
+                                   autocomplete="off">
+                            <button type="button" id="asset_type_toggle" 
+                                    class="absolute inset-y-0 right-0 flex items-center pr-2 text-slate-400 hover:text-slate-300">
+                                <i data-lucide="chevron-down" class="h-4 w-4"></i>
+                            </button>
+                            
+                            <!-- Dropdown options -->
+                            <div id="asset_type_dropdown" class="hidden absolute z-10 w-full mt-1 bg-slate-700 border border-slate-600 rounded-md shadow-lg max-h-60 overflow-auto">
+                                <div class="py-1">
+                                    <!-- Hardware Assets -->
+                                    <div class="px-3 py-1 text-xs font-semibold text-slate-400 bg-slate-800">Hardware Assets</div>
+                                    <div class="asset-type-option px-3 py-2 text-sm text-white hover:bg-slate-600 cursor-pointer" data-value="laptop">Laptop</div>
+                                    <div class="asset-type-option px-3 py-2 text-sm text-white hover:bg-slate-600 cursor-pointer" data-value="desktop">Desktop</div>
+                                    <div class="asset-type-option px-3 py-2 text-sm text-white hover:bg-slate-600 cursor-pointer" data-value="tablet">Tablet</div>
+                                    <div class="asset-type-option px-3 py-2 text-sm text-white hover:bg-slate-600 cursor-pointer" data-value="phone">Phone</div>
+                                    <div class="asset-type-option px-3 py-2 text-sm text-white hover:bg-slate-600 cursor-pointer" data-value="monitor">Monitor</div>
+                                    <div class="asset-type-option px-3 py-2 text-sm text-white hover:bg-slate-600 cursor-pointer" data-value="keyboard">Keyboard</div>
+                                    <div class="asset-type-option px-3 py-2 text-sm text-white hover:bg-slate-600 cursor-pointer" data-value="mouse">Mouse</div>
+                                    <div class="asset-type-option px-3 py-2 text-sm text-white hover:bg-slate-600 cursor-pointer" data-value="headphones">Headphones</div>
+                                    <div class="asset-type-option px-3 py-2 text-sm text-white hover:bg-slate-600 cursor-pointer" data-value="printer">Printer</div>
+                                    <div class="asset-type-option px-3 py-2 text-sm text-white hover:bg-slate-600 cursor-pointer" data-value="scanner">Scanner</div>
+                                    <div class="asset-type-option px-3 py-2 text-sm text-white hover:bg-slate-600 cursor-pointer" data-value="server">Server</div>
+                                    <div class="asset-type-option px-3 py-2 text-sm text-white hover:bg-slate-600 cursor-pointer" data-value="network_device">Network Device</div>
+                                    <div class="asset-type-option px-3 py-2 text-sm text-white hover:bg-slate-600 cursor-pointer" data-value="peripheral">Peripheral</div>
+                                    
+                                    <!-- Software Assets -->
+                                    <div class="px-3 py-1 text-xs font-semibold text-slate-400 bg-slate-800">Software Assets</div>
+                                    <div class="asset-type-option px-3 py-2 text-sm text-white hover:bg-slate-600 cursor-pointer" data-value="software_license">Software License</div>
+                                    <div class="asset-type-option px-3 py-2 text-sm text-white hover:bg-slate-600 cursor-pointer" data-value="subscription">Software Subscription</div>
+                                    <div class="asset-type-option px-3 py-2 text-sm text-white hover:bg-slate-600 cursor-pointer" data-value="saas">SaaS Application</div>
+                                    <div class="asset-type-option px-3 py-2 text-sm text-white hover:bg-slate-600 cursor-pointer" data-value="mobile_app">Mobile Application</div>
+                                    <div class="asset-type-option px-3 py-2 text-sm text-white hover:bg-slate-600 cursor-pointer" data-value="cloud_service">Cloud Service</div>
+                                    <div class="asset-type-option px-3 py-2 text-sm text-white hover:bg-slate-600 cursor-pointer" data-value="digital_asset">Digital Asset</div>
+                                    
+                                    <!-- Other -->
+                                    <div class="px-3 py-1 text-xs font-semibold text-slate-400 bg-slate-800">Other</div>
+                                    <div class="asset-type-option px-3 py-2 text-sm text-white hover:bg-slate-600 cursor-pointer" data-value="other">Other</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label for="serial_number" class="block text-sm font-medium text-slate-300 mb-2">Serial Number</label>
+                        <input type="text" name="serial_number" id="serial_number" value="{{ asset.serial_number }}" required class="w-full px-3 py-2 border border-slate-600 rounded-md shadow-sm bg-slate-700 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    
+                    <div>
+                        <label for="model" class="block text-sm font-medium text-slate-300 mb-2">Model (Optional)</label>
+                        <input type="text" name="model" id="model" value="{{ asset.model|default:'' }}" class="w-full px-3 py-2 border border-slate-600 rounded-md shadow-sm bg-slate-700 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    
+                    <div>
+                        <label for="manufacturer" class="block text-sm font-medium text-slate-300 mb-2">Manufacturer (Optional)</label>
+                        <input type="text" name="manufacturer" id="manufacturer" value="{{ asset.manufacturer|default:'' }}" class="w-full px-3 py-2 border border-slate-600 rounded-md shadow-sm bg-slate-700 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    
+                    <div>
+                        <label for="purchase_date" class="block text-sm font-medium text-slate-300 mb-2">Purchase Date (Optional)</label>
+                        <input type="text" name="purchase_date" id="purchase_date" 
+                               value="{% if asset.purchase_date %}{{ asset.purchase_date|date:'d/m/Y' }}{% endif %}" 
+                               class="w-full px-3 py-2 border border-slate-600 rounded-md shadow-sm bg-slate-700 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                               placeholder="DD/MM/YYYY or YYYY-MM-DD">
+                        <p class="text-xs text-slate-400 mt-1">Accepts: DD/MM/YYYY, MM/DD/YYYY, YYYY-MM-DD</p>
+                    </div>
+                    
+                    <div>
+                        <label for="status" class="block text-sm font-medium text-slate-300 mb-2">Status</label>
+                        <select name="status" id="status" required class="w-full px-3 py-2 border border-slate-600 rounded-md shadow-sm bg-slate-700 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            <option value="available" {% if asset.status == 'available' %}selected{% endif %}>Available</option>
+                            <option value="assigned" {% if asset.status == 'assigned' %}selected{% endif %}>Assigned</option>
+                            <option value="maintenance" {% if asset.status == 'maintenance' %}selected{% endif %}>Maintenance</option>
+                            <option value="retired" {% if asset.status == 'retired' %}selected{% endif %}>Retired</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Maintenance Fields (shown when status is maintenance) -->
+                    <div id="maintenance-fields" class="{% if asset.status == 'maintenance' %}block{% else %}hidden{% endif %} col-span-2 space-y-4 p-4 bg-slate-700/50 rounded-lg border border-slate-600">
+                        <h4 class="text-sm font-semibold text-white mb-3 flex items-center">
+                            <i data-lucide="wrench" class="h-4 w-4 text-orange-400 mr-2"></i>
+                            Maintenance Details
+                        </h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="maintenance_start_date" class="block text-sm font-medium text-slate-300 mb-2">Maintenance Start Date</label>
+                                <input type="text" name="maintenance_start_date" id="maintenance_start_date" 
+                                       value="{% if asset.maintenance_start_date %}{{ asset.maintenance_start_date|date:'d/m/Y' }}{% endif %}" 
+                                       class="w-full px-3 py-2 border border-slate-600 rounded-md shadow-sm bg-slate-700 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                       placeholder="DD/MM/YYYY or YYYY-MM-DD">
+                                <p class="text-xs text-slate-400 mt-1">Accepts: DD/MM/YYYY, MM/DD/YYYY, YYYY-MM-DD</p>
+                            </div>
+                            <div>
+                                <label for="maintenance_expected_end" class="block text-sm font-medium text-slate-300 mb-2">Expected Completion Date</label>
+                                <input type="text" name="maintenance_expected_end" id="maintenance_expected_end" 
+                                       value="{% if asset.maintenance_expected_end %}{{ asset.maintenance_expected_end|date:'d/m/Y' }}{% endif %}" 
+                                       class="w-full px-3 py-2 border border-slate-600 rounded-md shadow-sm bg-slate-700 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                       placeholder="DD/MM/YYYY or YYYY-MM-DD">
+                                <p class="text-xs text-slate-400 mt-1">Accepts: DD/MM/YYYY, MM/DD/YYYY, YYYY-MM-DD</p>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="maintenance_notes" class="block text-sm font-medium text-slate-300 mb-2">Maintenance Notes</label>
+                            <textarea name="maintenance_notes" id="maintenance_notes" rows="3" 
+                                      class="w-full px-3 py-2 border border-slate-600 rounded-md shadow-sm bg-slate-700 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500" 
+                                      placeholder="Describe the maintenance work being performed...">{{ asset.maintenance_notes|default:'' }}</textarea>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label for="assigned_to" class="block text-sm font-medium text-slate-300 mb-2">Assigned To (Optional)</label>
+                        <select name="assigned_to" id="assigned_to" class="w-full px-3 py-2 border border-slate-600 rounded-md shadow-sm bg-slate-700 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            <option value="none">Unassigned</option>
+                            {% for employee in employees %}
+                            <option value="{{ employee.id }}" {% if asset.assigned_to == employee %}selected{% endif %}>{{ employee.name }} - {{ employee.department }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Software Asset Fields (shown/hidden based on asset type) -->
+                <div id="software-fields" class="{% if asset.asset_type in 'software_license,subscription,saas,mobile_app,cloud_service,digital_asset' %}block{% else %}hidden{% endif %} space-y-6 pt-6 border-t border-slate-700">
+                    <h3 class="text-md font-semibold text-white">Software Asset Details</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="license_key" class="block text-sm font-medium text-slate-300 mb-2">License Key (Optional)</label>
+                            <input type="text" name="license_key" id="license_key" value="{{ asset.license_key|default:'' }}" class="w-full px-3 py-2 border border-slate-600 rounded-md shadow-sm bg-slate-700 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="Enter license key">
+                        </div>
+                        
+                        <div>
+                            <label for="license_type" class="block text-sm font-medium text-slate-300 mb-2">License Type (Optional)</label>
+                            <select name="license_type" id="license_type" class="w-full px-3 py-2 border border-slate-600 rounded-md shadow-sm bg-slate-700 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                <option value="">Select license type</option>
+                                <option value="perpetual" {% if asset.license_type == 'perpetual' %}selected{% endif %}>Perpetual</option>
+                                <option value="subscription" {% if asset.license_type == 'subscription' %}selected{% endif %}>Subscription</option>
+                                <option value="trial" {% if asset.license_type == 'trial' %}selected{% endif %}>Trial</option>
+                                <option value="academic" {% if asset.license_type == 'academic' %}selected{% endif %}>Academic</option>
+                                <option value="volume" {% if asset.license_type == 'volume' %}selected{% endif %}>Volume License</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label for="version" class="block text-sm font-medium text-slate-300 mb-2">Version (Optional)</label>
+                            <input type="text" name="version" id="version" value="{{ asset.version|default:'' }}" class="w-full px-3 py-2 border border-slate-600 rounded-md shadow-sm bg-slate-700 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="e.g., 2.1.0">
+                        </div>
+                        
+                        <div>
+                            <label for="vendor" class="block text-sm font-medium text-slate-300 mb-2">Vendor/Developer (Optional)</label>
+                            <input type="text" name="vendor" id="vendor" value="{{ asset.vendor|default:'' }}" class="w-full px-3 py-2 border border-slate-600 rounded-md shadow-sm bg-slate-700 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="e.g., Microsoft, Adobe">
+                        </div>
+                        
+                        <div>
+                            <label for="subscription_end" class="block text-sm font-medium text-slate-300 mb-2">Subscription End Date (Optional)</label>
+                            <input type="text" name="subscription_end" id="subscription_end" 
+                                   value="{% if asset.subscription_end %}{{ asset.subscription_end|date:'d/m/Y' }}{% endif %}" 
+                                   class="w-full px-3 py-2 border border-slate-600 rounded-md shadow-sm bg-slate-700 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                   placeholder="DD/MM/YYYY or YYYY-MM-DD">
+                            <p class="text-xs text-slate-400 mt-1">Accepts: DD/MM/YYYY, MM/DD/YYYY, YYYY-MM-DD</p>
+                        </div>
+                        
+                        <div>
+                            <label for="seats" class="block text-sm font-medium text-slate-300 mb-2">Total Seats/Licenses (Optional)</label>
+                            <input type="number" name="seats" id="seats" min="1" value="{{ asset.seats|default:'' }}" class="w-full px-3 py-2 border border-slate-600 rounded-md shadow-sm bg-slate-700 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="Number of seats">
+                        </div>
+                        
+                        <div>
+                            <label for="used_seats" class="block text-sm font-medium text-slate-300 mb-2">Used Seats (Optional)</label>
+                            <input type="number" name="used_seats" id="used_seats" min="0" value="{{ asset.used_seats|default:'' }}" class="w-full px-3 py-2 border border-slate-600 rounded-md shadow-sm bg-slate-700 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="Currently used seats">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end space-x-3 pt-6 border-t border-slate-700">
+                    <a href="{% url 'assets:assets' %}" class="px-4 py-2 border border-slate-600 rounded-md text-sm font-medium text-slate-300 hover:bg-slate-700">
+                        Cancel
+                    </a>
+                    <button type="submit" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Update Asset
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Asset Type Combobox functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const assetTypeInput = document.getElementById('asset_type');
+    const assetTypeToggle = document.getElementById('asset_type_toggle');
+    const assetTypeDropdown = document.getElementById('asset_type_dropdown');
+    const assetTypeOptions = document.querySelectorAll('.asset-type-option');
+    
+    // Toggle dropdown
+    assetTypeToggle.addEventListener('click', function(e) {
+        e.preventDefault();
+        toggleDropdown();
+    });
+    
+    // Show dropdown on input focus
+    assetTypeInput.addEventListener('focus', function() {
+        showDropdown();
+    });
+    
+    // Handle option selection
+    assetTypeOptions.forEach(option => {
+        option.addEventListener('click', function() {
+            const value = this.getAttribute('data-value');
+            const text = this.textContent;
+            assetTypeInput.value = text;
+            hideDropdown();
+            toggleSoftwareFields(value);
+        });
+    });
+    
+    // Filter options based on input
+    assetTypeInput.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        filterOptions(searchTerm);
+        
+        // Check if input matches any software asset type
+        const softwareTypes = ['software_license', 'subscription', 'saas', 'mobile_app', 'cloud_service', 'digital_asset'];
+        const isSoftwareType = softwareTypes.some(type => {
+            const option = document.querySelector(`[data-value="${type}"]`);
+            return option && option.textContent.toLowerCase().includes(searchTerm.toLowerCase());
+        });
+        
+        if (isSoftwareType) {
+            toggleSoftwareFields('software');
+        } else {
+            toggleSoftwareFields('hardware');
+        }
+    });
+    
+    // Handle keyboard navigation
+    assetTypeInput.addEventListener('keydown', function(e) {
+        const visibleOptions = Array.from(assetTypeOptions).filter(opt => !opt.classList.contains('hidden'));
+        const currentIndex = visibleOptions.findIndex(opt => opt.classList.contains('bg-slate-600'));
+        
+        switch(e.key) {
+            case 'ArrowDown':
+                e.preventDefault();
+                navigateOptions(visibleOptions, currentIndex, 1);
+                break;
+            case 'ArrowUp':
+                e.preventDefault();
+                navigateOptions(visibleOptions, currentIndex, -1);
+                break;
+            case 'Enter':
+                e.preventDefault();
+                if (visibleOptions.length > 0) {
+                    const selectedOption = visibleOptions.find(opt => opt.classList.contains('bg-slate-600')) || visibleOptions[0];
+                    const value = selectedOption.getAttribute('data-value');
+                    const text = selectedOption.textContent;
+                    assetTypeInput.value = text;
+                    hideDropdown();
+                }
+                break;
+            case 'Escape':
+                hideDropdown();
+                break;
+        }
+    });
+    
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!assetTypeInput.contains(e.target) && !assetTypeDropdown.contains(e.target)) {
+            hideDropdown();
+        }
+    });
+    
+    function toggleDropdown() {
+        if (assetTypeDropdown.classList.contains('hidden')) {
+            showDropdown();
+        } else {
+            hideDropdown();
+        }
+    }
+    
+    function showDropdown() {
+        assetTypeDropdown.classList.remove('hidden');
+        assetTypeToggle.querySelector('i').setAttribute('data-lucide', 'chevron-up');
+        lucide.createIcons();
+        filterOptions(assetTypeInput.value.toLowerCase());
+    }
+    
+    function hideDropdown() {
+        assetTypeDropdown.classList.add('hidden');
+        assetTypeToggle.querySelector('i').setAttribute('data-lucide', 'chevron-down');
+        lucide.createIcons();
+        // Clear any highlighted options
+        assetTypeOptions.forEach(opt => opt.classList.remove('bg-slate-600'));
+    }
+    
+    function filterOptions(searchTerm) {
+        assetTypeOptions.forEach(option => {
+            const text = option.textContent.toLowerCase();
+            if (text.includes(searchTerm)) {
+                option.classList.remove('hidden');
+            } else {
+                option.classList.add('hidden');
+            }
+        });
+        
+        // Show all options if search is empty
+        if (!searchTerm) {
+            assetTypeOptions.forEach(option => option.classList.remove('hidden'));
+        }
+    }
+    
+    function navigateOptions(options, currentIndex, direction) {
+        // Clear current selection
+        options.forEach(opt => opt.classList.remove('bg-slate-600'));
+        
+        // Calculate new index
+        let newIndex = currentIndex + direction;
+        if (newIndex < 0) newIndex = options.length - 1;
+        if (newIndex >= options.length) newIndex = 0;
+        
+        // Highlight new option
+        if (options[newIndex]) {
+            options[newIndex].classList.add('bg-slate-600');
+            options[newIndex].scrollIntoView({ block: 'nearest' });
+        }
+    }
+    
+    function toggleSoftwareFields(assetType) {
+        const softwareFields = document.getElementById('software-fields');
+        const softwareTypes = ['software_license', 'subscription', 'saas', 'mobile_app', 'cloud_service', 'digital_asset'];
+        
+        if (softwareTypes.includes(assetType)) {
+            softwareFields.classList.remove('hidden');
+        } else {
+            softwareFields.classList.add('hidden');
+        }
+    }
+    
+    function toggleMaintenanceFields(status) {
+        const maintenanceFields = document.getElementById('maintenance-fields');
+        
+        if (status === 'maintenance') {
+            maintenanceFields.classList.remove('hidden');
+            // Auto-set today's date if maintenance start date is empty
+            const startDateInput = document.getElementById('maintenance_start_date');
+            if (!startDateInput.value) {
+                const today = new Date();
+                const day = String(today.getDate()).padStart(2, '0');
+                const month = String(today.getMonth() + 1).padStart(2, '0');
+                const year = today.getFullYear();
+                startDateInput.value = `${day}/${month}/${year}`;
+            }
+        } else {
+            maintenanceFields.classList.add('hidden');
+        }
+    }
+    
+    // Add event listener for status changes
+    const statusSelect = document.getElementById('status');
+    statusSelect.addEventListener('change', function() {
+        toggleMaintenanceFields(this.value);
+    });
+    
+    // Initialize maintenance fields visibility on page load
+    toggleMaintenanceFields(statusSelect.value);
+});
+</script>
+{% endblock %}

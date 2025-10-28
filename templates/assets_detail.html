@@ -1,0 +1,492 @@
+{% extends 'base.html' %}
+{% load employee_filters %}
+
+{% block title %}{{ asset.name }} | AssetTrack{% endblock %}
+
+{% block content %}
+<div class="w-full px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700 mb-8">
+        <div class="px-6 py-5 border-b border-slate-700 flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <button onclick="window.history.back()" class="text-slate-400 hover:text-white transition-colors">
+                    <i data-lucide="arrow-left" class="h-6 w-6"></i>
+                </button>
+                <div>
+                    <h2 class="text-2xl font-bold text-white">{{ asset.name }}</h2>
+                    <p class="text-slate-400">{{ asset.model|default:"No model" }} • {{ asset.manufacturer|default:"No manufacturer" }}</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-3">
+                <button onclick="editAsset('{{ asset.id }}')" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <i data-lucide="edit" class="mr-2 h-4 w-4"></i>
+                    Edit Asset
+                </button>
+                {% if request.user.is_staff or request.user.is_superuser or asset.can_delete %}
+                    <button onclick="deleteAsset('{{ asset.id }}')" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                        <i data-lucide="trash-2" class="mr-2 h-4 w-4"></i>
+                        Delete Asset
+                    </button>
+                {% else %}
+                    <button class="inline-flex items-center px-4 py-2 border border-red-600 text-sm font-medium rounded-md shadow-sm text-red-400 bg-red-900/20 cursor-not-allowed" title="Delete not allowed - Admin only">
+                        <i data-lucide="trash-2" class="mr-2 h-4 w-4"></i>
+                        Delete Asset
+                    </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Asset Information Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        <!-- Basic Information -->
+        <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700">
+            <div class="px-6 py-5 border-b border-slate-700 flex items-center">
+                <i data-lucide="info" class="h-5 w-5 text-blue-400 mr-3"></i>
+                <h3 class="text-lg font-semibold text-white">Basic Information</h3>
+            </div>
+            <div class="p-6">
+                <!-- Asset Identity Section -->
+                <div class="mb-6">
+                    <div class="flex items-center mb-4">
+                        <div class="flex-shrink-0 mr-4">
+                            {% if asset.asset_type == 'laptop' %}
+                                <div class="h-12 w-12 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                                    <i data-lucide="laptop" class="h-6 w-6 text-blue-400"></i>
+                                </div>
+                            {% elif asset.asset_type == 'phone' %}
+                                <div class="h-12 w-12 bg-green-500/20 rounded-lg flex items-center justify-center">
+                                    <i data-lucide="smartphone" class="h-6 w-6 text-green-400"></i>
+                                </div>
+                            {% elif asset.asset_type == 'monitor' %}
+                                <div class="h-12 w-12 bg-purple-500/20 rounded-lg flex items-center justify-center">
+                                    <i data-lucide="monitor" class="h-6 w-6 text-purple-400"></i>
+                                </div>
+                            {% elif asset.asset_type == 'keyboard' %}
+                                <div class="h-12 w-12 bg-yellow-500/20 rounded-lg flex items-center justify-center">
+                                    <i data-lucide="keyboard" class="h-6 w-6 text-yellow-400"></i>
+                                </div>
+                            {% elif asset.asset_type == 'mouse' %}
+                                <div class="h-12 w-12 bg-orange-500/20 rounded-lg flex items-center justify-center">
+                                    <i data-lucide="mouse-pointer" class="h-6 w-6 text-orange-400"></i>
+                                </div>
+                            {% elif asset.asset_type == 'software_license' or asset.asset_type == 'subscription' %}
+                                <div class="h-12 w-12 bg-indigo-500/20 rounded-lg flex items-center justify-center">
+                                    <i data-lucide="code" class="h-6 w-6 text-indigo-400"></i>
+                                </div>
+                            {% elif asset.asset_type == 'saas' or asset.asset_type == 'cloud_service' %}
+                                <div class="h-12 w-12 bg-cyan-500/20 rounded-lg flex items-center justify-center">
+                                    <i data-lucide="cloud" class="h-6 w-6 text-cyan-400"></i>
+                                </div>
+                            {% elif asset.asset_type == 'mobile_app' %}
+                                <div class="h-12 w-12 bg-pink-500/20 rounded-lg flex items-center justify-center">
+                                    <i data-lucide="smartphone" class="h-6 w-6 text-pink-400"></i>
+                                </div>
+                            {% elif asset.asset_type == 'digital_asset' %}
+                                <div class="h-12 w-12 bg-emerald-500/20 rounded-lg flex items-center justify-center">
+                                    <i data-lucide="file-text" class="h-6 w-6 text-emerald-400"></i>
+                                </div>
+                            {% else %}
+                                <div class="h-12 w-12 bg-gray-500/20 rounded-lg flex items-center justify-center">
+                                    <i data-lucide="package" class="h-6 w-6 text-gray-400"></i>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="flex-1">
+                            <h4 class="text-xl font-bold text-white mb-1">{{ asset.name }}</h4>
+                            <div class="flex items-center space-x-3">
+                                <span class="px-3 py-1 inline-flex text-sm font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+                                    {{ asset.get_asset_type_display }}
+                                </span>
+                                <span class="px-3 py-1 inline-flex text-sm font-semibold rounded-full 
+                                    {% if asset.status == 'available' %}bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400
+                                    {% elif asset.status == 'assigned' %}bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400
+                                    {% elif asset.status == 'maintenance' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400
+                                    {% else %}bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400{% endif %}">
+                                    {{ asset.get_status_display }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Asset Details Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Left Column -->
+                    <div class="space-y-4">
+                        <div class="bg-slate-700/50 rounded-lg p-4">
+                            <div class="flex items-center mb-3">
+                                <i data-lucide="hash" class="h-4 w-4 text-slate-400 mr-2"></i>
+                                <span class="text-sm font-medium text-slate-300">Serial Number</span>
+                            </div>
+                            <p class="text-white font-mono text-lg">{{ asset.serial_number }}</p>
+                        </div>
+
+                        <div class="bg-slate-700/50 rounded-lg p-4">
+                            <div class="flex items-center mb-3">
+                                <i data-lucide="tag" class="h-4 w-4 text-slate-400 mr-2"></i>
+                                <span class="text-sm font-medium text-slate-300">Model</span>
+                            </div>
+                            <p class="text-white text-lg">{{ asset.model|default:"Not specified" }}</p>
+                        </div>
+
+                        <div class="bg-slate-700/50 rounded-lg p-4">
+                            <div class="flex items-center mb-3">
+                                <i data-lucide="building" class="h-4 w-4 text-slate-400 mr-2"></i>
+                                <span class="text-sm font-medium text-slate-300">Manufacturer</span>
+                            </div>
+                            <p class="text-white text-lg">{{ asset.manufacturer|default:"Not specified" }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Right Column -->
+                    <div class="space-y-4">
+                        <div class="bg-slate-700/50 rounded-lg p-4">
+                            <div class="flex items-center mb-3">
+                                <i data-lucide="calendar" class="h-4 w-4 text-slate-400 mr-2"></i>
+                                <span class="text-sm font-medium text-slate-300">Purchase Date</span>
+                            </div>
+                            <p class="text-white text-lg">{{ asset.purchase_date|date:"M d, Y"|default:"Not specified" }}</p>
+                        </div>
+
+                        <!-- Health Score -->
+                        <div class="bg-slate-700/50 rounded-lg p-4">
+                            <div class="flex items-center mb-3">
+                                <i data-lucide="activity" class="h-4 w-4 text-slate-400 mr-2"></i>
+                                <span class="text-sm font-medium text-slate-300">Health Score</span>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <div class="flex-1 bg-slate-600 rounded-full h-2">
+                                    <div class="h-2 rounded-full {% if asset.health_score >= 80 %}bg-green-500{% elif asset.health_score >= 60 %}bg-yellow-500{% else %}bg-red-500{% endif %}" 
+                                         style="width: {{ asset.health_score }}%"></div>
+                                </div>
+                                <span class="text-white font-semibold text-lg">{{ asset.health_score }}%</span>
+                            </div>
+                            <p class="text-slate-400 text-sm mt-2">
+                                Based on: {{ asset|health_reference_date|date:"M d, Y"|default:"Not specified" }}
+                            </p>
+                        </div>
+
+                        {% if asset.operating_system %}
+                        <div class="bg-slate-700/50 rounded-lg p-4">
+                            <div class="flex items-center mb-3">
+                                <i data-lucide="monitor" class="h-4 w-4 text-slate-400 mr-2"></i>
+                                <span class="text-sm font-medium text-slate-300">Operating System</span>
+                            </div>
+                            <p class="text-white text-lg">{{ asset.operating_system }}{% if asset.os_version %} {{ asset.os_version }}{% endif %}</p>
+                        </div>
+                        {% endif %}
+
+                        {% if asset.azure_ad_id %}
+                        <div class="bg-slate-700/50 rounded-lg p-4">
+                            <div class="flex items-center mb-3">
+                                <i data-lucide="cloud" class="h-4 w-4 text-blue-400 mr-2"></i>
+                                <span class="text-sm font-medium text-slate-300">Azure AD ID</span>
+                            </div>
+                            <p class="text-white font-mono text-sm break-all">{{ asset.azure_ad_id }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Azure Sync Info -->
+                {% if asset.last_azure_sync %}
+                <div class="mt-6 bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
+                    <div class="flex items-center">
+                        <i data-lucide="refresh-cw" class="h-4 w-4 text-blue-400 mr-2"></i>
+                        <span class="text-sm font-medium text-blue-400">Last Azure Sync</span>
+                        <span class="ml-auto text-sm text-blue-300">{{ asset.last_azure_sync|date:"M d, Y H:i" }}</span>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Maintenance Details -->
+                {% if asset.status == 'maintenance' %}
+                <div class="mt-6 bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4">
+                    <h4 class="text-lg font-semibold text-yellow-400 mb-4 flex items-center">
+                        <i data-lucide="wrench" class="h-5 w-5 text-yellow-400 mr-2"></i>
+                        Maintenance Information
+                    </h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {% if asset.maintenance_start_date %}
+                        <div class="bg-slate-700/50 rounded-lg p-4">
+                            <div class="flex items-center mb-3">
+                                <i data-lucide="calendar" class="h-4 w-4 text-slate-400 mr-2"></i>
+                                <span class="text-sm font-medium text-slate-300">Maintenance Started</span>
+                            </div>
+                            <p class="text-white text-lg">{{ asset.maintenance_start_date|date:"M d, Y" }}</p>
+                        </div>
+                        {% endif %}
+                        
+                        {% if asset.maintenance_expected_end %}
+                        <div class="bg-slate-700/50 rounded-lg p-4">
+                            <div class="flex items-center mb-3">
+                                <i data-lucide="target" class="h-4 w-4 text-slate-400 mr-2"></i>
+                                <span class="text-sm font-medium text-slate-300">Expected Completion</span>
+                            </div>
+                            <p class="text-white text-lg">{{ asset.maintenance_expected_end|date:"M d, Y" }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    {% if asset.maintenance_notes %}
+                    <div class="mt-4">
+                        <div class="flex items-center mb-3">
+                            <i data-lucide="file-text" class="h-4 w-4 text-slate-400 mr-2"></i>
+                            <span class="text-sm font-medium text-slate-300">Maintenance Notes</span>
+                        </div>
+                        <div class="bg-slate-700/50 rounded-lg p-4">
+                            <p class="text-white">{{ asset.maintenance_notes|linebreaks }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+                
+                <!-- Software Asset Details -->
+                {% if asset.asset_type in 'software_license,subscription,saas,mobile_app,cloud_service,digital_asset' %}
+                <div class="mt-6 border-t border-slate-700 pt-6">
+                    <h4 class="text-lg font-semibold text-white mb-4 flex items-center">
+                        <i data-lucide="code" class="h-5 w-5 text-green-400 mr-2"></i>
+                        Software Details
+                    </h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {% if asset.license_key %}
+                        <div class="bg-slate-700/50 rounded-lg p-4">
+                            <div class="flex items-center mb-3">
+                                <i data-lucide="key" class="h-4 w-4 text-slate-400 mr-2"></i>
+                                <span class="text-sm font-medium text-slate-300">License Key</span>
+                            </div>
+                            <p class="text-white font-mono text-sm break-all">{{ asset.license_key }}</p>
+                        </div>
+                        {% endif %}
+                        
+                        {% if asset.license_type %}
+                        <div class="bg-slate-700/50 rounded-lg p-4">
+                            <div class="flex items-center mb-3">
+                                <i data-lucide="file-text" class="h-4 w-4 text-slate-400 mr-2"></i>
+                                <span class="text-sm font-medium text-slate-300">License Type</span>
+                            </div>
+                            <p class="text-white text-lg">{{ asset.license_type|title }}</p>
+                        </div>
+                        {% endif %}
+                        
+                        {% if asset.version %}
+                        <div class="bg-slate-700/50 rounded-lg p-4">
+                            <div class="flex items-center mb-3">
+                                <i data-lucide="git-branch" class="h-4 w-4 text-slate-400 mr-2"></i>
+                                <span class="text-sm font-medium text-slate-300">Version</span>
+                            </div>
+                            <p class="text-white text-lg">{{ asset.version }}</p>
+                        </div>
+                        {% endif %}
+                        
+                        {% if asset.vendor %}
+                        <div class="bg-slate-700/50 rounded-lg p-4">
+                            <div class="flex items-center mb-3">
+                                <i data-lucide="building" class="h-4 w-4 text-slate-400 mr-2"></i>
+                                <span class="text-sm font-medium text-slate-300">Vendor/Developer</span>
+                            </div>
+                            <p class="text-white text-lg">{{ asset.vendor }}</p>
+                        </div>
+                        {% endif %}
+                        
+                        {% if asset.subscription_end %}
+                        <div class="bg-slate-700/50 rounded-lg p-4">
+                            <div class="flex items-center mb-3">
+                                <i data-lucide="calendar" class="h-4 w-4 text-slate-400 mr-2"></i>
+                                <span class="text-sm font-medium text-slate-300">Subscription End</span>
+                            </div>
+                            <p class="text-white text-lg">{{ asset.subscription_end|date:"M d, Y" }}</p>
+                        </div>
+                        {% endif %}
+                        
+                        {% if asset.seats %}
+                        <div class="bg-slate-700/50 rounded-lg p-4">
+                            <div class="flex items-center mb-3">
+                                <i data-lucide="users" class="h-4 w-4 text-slate-400 mr-2"></i>
+                                <span class="text-sm font-medium text-slate-300">Seats/Licenses</span>
+                            </div>
+                            <p class="text-white text-lg">
+                                {{ asset.used_seats|default:0 }}/{{ asset.seats }}
+                                {% if asset.seats and asset.used_seats %}
+                                    <span class="text-sm text-slate-400 ml-2">
+                                        ({{ asset.used_seats|floatformat:0 }}% used)
+                                    </span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Assignment Information -->
+        <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700">
+            <div class="px-6 py-5 border-b border-slate-700">
+                <h3 class="text-lg font-semibold text-white">Assignment Information</h3>
+            </div>
+            <div class="px-6 py-4">
+                {% if asset.assigned_to %}
+                <div class="space-y-4">
+                    <div class="flex items-center space-x-4">
+                        <div class="flex-shrink-0">
+                            <img class="h-12 w-12 rounded-full cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all" src="{{ asset.assigned_to|safe_employee_avatar_url }}" alt="{{ asset.assigned_to.name }}"  onclick="openAvatarModal(this.src, '{{ asset.assigned_to.name }}', '{{ asset.assigned_to.department }} • {{ asset.assigned_to.email }}')">
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-medium text-white truncate">{{ asset.assigned_to.name }}</p>
+                            <p class="text-sm text-slate-400">{{ asset.assigned_to.email }}</p>
+                            <p class="text-sm text-slate-400">{{ asset.assigned_to.department }}</p>
+                        </div>
+                    </div>
+                    <div class="border-t border-slate-700 pt-4">
+                        <div class="flex justify-between items-center">
+                            <span class="text-slate-400">Employee ID:</span>
+                            <span class="text-white font-mono">{{ asset.assigned_to.id }}</span>
+                        </div>
+                        <div class="flex justify-between items-center mt-2">
+                            <span class="text-slate-400">Phone:</span>
+                            <span class="text-white">{{ asset.assigned_to.phone|default:"Not provided" }}</span>
+                        </div>
+                        <div class="flex justify-between items-center mt-2">
+                            <span class="text-slate-400">Start Date:</span>
+                            <span class="text-white">{{ asset.assigned_to.start_date|date:"M d, Y"|default:"Not specified" }}</span>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="text-center py-8">
+                    <i data-lucide="user-x" class="h-12 w-12 text-slate-400 mx-auto mb-4"></i>
+                    <p class="text-slate-400">This asset is not currently assigned to any employee.</p>
+                    <p class="text-slate-500 text-sm mt-2">Use the edit function to assign this asset to an employee.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Handover History -->
+    <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700 mb-8">
+        <div class="px-6 py-5 border-b border-slate-700">
+            <h3 class="text-lg font-semibold text-white">Handover History</h3>
+        </div>
+        <div class="px-6 py-4">
+            {% if asset.handoverasset_set.all %}
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-slate-700">
+                    <thead class="bg-slate-800">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Handover Date</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">From Employee</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">To Employee</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Status</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-slate-800 divide-y divide-slate-700">
+                        {% for handover_asset in asset.handoverasset_set.all %}
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-white">
+                                {{ handover_asset.handover.created_at|date:"M d, Y H:i" }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                {% if handover_asset.handover.from_employee %}
+                                <div class="flex items-center">
+                                    <img class="h-6 w-6 rounded-full mr-2 cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all" src="{{ handover_asset.handover.from_employee|safe_employee_avatar_url }}" alt="{{ handover_asset.handover.from_employee.name }}"  onclick="openAvatarModal(this.src, '{{ handover_asset.handover.from_employee.name }}', '{{ handover_asset.handover.from_employee.department }} • {{ handover_asset.handover.from_employee.email }}')">
+                                    <span class="text-sm text-white">{{ handover_asset.handover.from_employee.name }}</span>
+                                </div>
+                                {% else %}
+                                <span class="text-sm text-slate-400">Unassigned</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                {% if handover_asset.handover.to_employee %}
+                                <div class="flex items-center">
+                                    <img class="h-6 w-6 rounded-full mr-2 cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all" src="{{ handover_asset.handover.to_employee|safe_employee_avatar_url }}" alt="{{ handover_asset.handover.to_employee.name }}"  onclick="openAvatarModal(this.src, '{{ handover_asset.handover.to_employee.name }}', '{{ handover_asset.handover.to_employee.department }} • {{ handover_asset.handover.to_employee.email }}')">
+                                    <span class="text-sm text-white">{{ handover_asset.handover.to_employee.name }}</span>
+                                </div>
+                                {% else %}
+                                <span class="text-sm text-slate-400">Unassigned</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                    {% if handover_asset.handover.status == 'Completed' %}bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400
+                                    {% elif handover_asset.handover.status == 'Pending' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400
+                                    {% elif handover_asset.handover.status == 'Pending Scan' %}bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400
+                                    {% else %}bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400{% endif %}">
+                                    {{ handover_asset.handover.status }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <a href="{% url 'assets:handover_detail' handover_asset.handover.id %}" class="text-blue-500 hover:text-blue-700">
+                                    <i data-lucide="eye" class="h-4 w-4"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-8">
+                <i data-lucide="history" class="h-12 w-12 text-slate-400 mx-auto mb-4"></i>
+                <p class="text-slate-400">No handover history found for this asset.</p>
+                <p class="text-slate-500 text-sm mt-2">Handover records will appear here when this asset is transferred between employees.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Welcome Pack Information -->
+    <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700">
+        <div class="px-6 py-5 border-b border-slate-700">
+            <h3 class="text-lg font-semibold text-white">Welcome Pack Membership</h3>
+        </div>
+        <div class="px-6 py-4">
+            {% if asset.welcomepack_set.all %}
+            <div class="space-y-4">
+                {% for welcome_pack in asset.welcomepack_set.all %}
+                <div class="flex items-center justify-between p-4 bg-slate-700 rounded-lg">
+                    <div>
+                        <h4 class="text-white font-medium">{{ welcome_pack.name }}</h4>
+                        <p class="text-slate-400 text-sm">{{ welcome_pack.description|default:"No description" }}</p>
+                        {% if welcome_pack.department %}
+                        <p class="text-slate-500 text-xs mt-1">Department: {{ welcome_pack.department }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                            {% if welcome_pack.is_active %}bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400
+                            {% else %}bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400{% endif %}">
+                            {% if welcome_pack.is_active %}Active{% else %}Inactive{% endif %}
+                        </span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-8">
+                <i data-lucide="package" class="h-12 w-12 text-slate-400 mx-auto mb-4"></i>
+                <p class="text-slate-400">This asset is not part of any welcome pack.</p>
+                <p class="text-slate-500 text-sm mt-2">Welcome packs can be created to group assets for new employee onboarding.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+function editAsset(assetId) {
+    window.location.href = '/assets/' + assetId + '/edit/';
+}
+
+function deleteAsset(assetId) {
+    if (confirm('Are you sure you want to delete this asset? This action cannot be undone.')) {
+        window.location.href = '/assets/' + assetId + '/delete/';
+    }
+}
+</script>
+{% endblock %}

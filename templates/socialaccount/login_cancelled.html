@@ -1,0 +1,14 @@
+{% extends "account/base.html" %}
+
+{% block title %}Login Cancelled | AssetTrack{% endblock %}
+
+{% block content %}
+<h2>Login Cancelled</h2>
+
+<p>You decided to cancel logging in to our site using one of your existing accounts.</p>
+
+<div style="margin-top: 2rem;">
+    <a href="{% url 'account_login' %}" class="btn btn-primary">Try Again</a>
+    <a href="/" class="btn btn-secondary">Go to Home</a>
+</div>
+{% endblock %}

@@ -1,0 +1,2784 @@
+{% extends 'base.html' %}
+{% load employee_filters %}
+
+{% block title %}Assets | AssetTrack{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Smooth transitions for all interactive elements */
+    .bg-slate-800.rounded-xl {
+        transition: all 0.3s ease-in-out;
+    }
+    
+    /* Donut chart animations */
+    circle {
+        transition: stroke-dasharray 1s ease-in-out, stroke-width 0.3s ease-in-out;
+    }
+    
+    circle:hover {
+        stroke-width: 10;
+        cursor: pointer;
+    }
+    
+    /* Legend item hover effects */
+    .space-y-2 .flex {
+        transition: all 0.2s ease-in-out;
+        cursor: pointer;
+        padding: 4px 8px;
+        border-radius: 6px;
+    }
+    
+    .space-y-2 .flex:hover {
+        background-color: rgba(59, 130, 246, 0.1);
+        transform: translateX(4px);
+    }
+    
+    /* Analytics box hover effects */
+    .analytics-box {
+        transition: all 0.3s ease-in-out;
+    }
+    
+    .analytics-box:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+    }
+    
+    /* Pulse animation for important metrics */
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
+    }
+    
+    .pulse-animation {
+        animation: pulse 2s infinite;
+    }
+    
+    /* Gradient backgrounds for donut charts */
+    .donut-container {
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(16, 185, 129, 0.1) 100%);
+        border-radius: 12px;
+        padding: 8px;
+    }
+    
+    /* Scanner specific styles */
+    .scanner-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .scanner-frame {
+        border: 2px solid #3b82f6;
+        border-radius: 8px;
+        padding: 8px;
+        background: transparent;
+    }
+    
+    .scanner-frame::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 200px;
+        height: 120px;
+        border: 2px solid #3b82f6;
+        border-radius: 4px;
+        background: transparent;
+    }
+    
+    /* Loading animation */
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    .animate-spin {
+        animation: spin 1s linear infinite;
+    }
+    
+    /* Scanning line animation */
+    .scanning-line {
+        position: absolute;
+        width: 100%;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, #3b82f6, transparent);
+        animation: scanning 2s linear infinite;
+    }
+    
+    @keyframes scanning {
+        0% { top: 0; opacity: 1; }
+        50% { opacity: 1; }
+        100% { top: 100%; opacity: 0; }
+    }
+</style>
+
+<!-- Include QuaggaJS for barcode scanning fallback -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js" onerror="console.log('QuaggaJS failed to load from CDN')"></script>
+<script>
+// Fallback QuaggaJS loading
+if (typeof Quagga === 'undefined') {
+    console.log('Loading QuaggaJS from alternative source...');
+    const script = document.createElement('script');
+    script.src = 'https://unpkg.com/quagga@0.12.1/dist/quagga.min.js';
+    script.onload = function() {
+        console.log('QuaggaJS loaded from alternative source');
+        if (typeof initializeBarcodeScanner === 'function') {
+            initializeBarcodeScanner();
+        }
+    };
+    script.onerror = function() {
+        console.log('QuaggaJS failed to load from alternative source');
+    };
+    document.head.appendChild(script);
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="w-full px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Analytics Dashboard -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <a href="{% url 'assets:assets' %}" class="bg-slate-800 rounded-xl p-6 shadow-lg border border-slate-700 hover:bg-slate-700 hover:border-slate-600 transition-all duration-200 cursor-pointer group">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-slate-400 group-hover:text-blue-400 transition-colors">Total Assets</p>
+                    <p class="mt-1 text-3xl font-semibold text-white">{{ total_assets }}</p>
+                </div>
+                <div class="p-3 rounded-lg bg-blue-900/20 text-blue-400 group-hover:bg-blue-900/30 transition-colors">
+                    <i data-lucide="package" class="h-6 w-6"></i>
+                </div>
+            </div>
+            <div class="mt-4">
+                <div class="flex items-center text-sm text-slate-400">
+                    <i data-lucide="trending-up" class="h-4 w-4 text-green-500 mr-1"></i>
+                    <span>{{ recent_assets }} new this week</span>
+                </div>
+            </div>
+        </a>
+        
+        <a href="{% url 'assets:lost_assets' %}" class="bg-slate-800 rounded-xl p-6 shadow-lg border border-slate-700 hover:bg-slate-700 hover:border-slate-600 transition-all duration-200 cursor-pointer group">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-slate-400 group-hover:text-red-400 transition-colors">Lost Assets</p>
+                    <p class="mt-1 text-3xl font-semibold text-white">{{ lost_assets }}</p>
+                </div>
+                <div class="p-3 rounded-lg bg-red-900/20 text-red-400 group-hover:bg-red-900/30 transition-colors">
+                    <i data-lucide="alert-triangle" class="h-6 w-6"></i>
+                </div>
+            </div>
+            <div class="mt-4">
+                <div class="flex items-center text-sm text-slate-400">
+                    <i data-lucide="search" class="h-4 w-4 text-red-400 mr-1"></i>
+                    <span>Need attention</span>
+                </div>
+            </div>
+        </a>
+        
+        <a href="{% url 'assets:new_assets' %}" class="bg-slate-800 rounded-xl p-6 shadow-lg border border-slate-700 hover:bg-slate-700 hover:border-slate-600 transition-all duration-200 cursor-pointer group">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-slate-400 group-hover:text-green-400 transition-colors">New Assets</p>
+                    <p class="mt-1 text-3xl font-semibold text-white">{{ new_assets }}</p>
+                </div>
+                <div class="p-3 rounded-lg bg-green-900/20 text-green-400 group-hover:bg-green-900/30 transition-colors">
+                    <i data-lucide="plus-circle" class="h-6 w-6"></i>
+                </div>
+            </div>
+            <div class="mt-4">
+                <div class="flex items-center text-sm text-slate-400">
+                    <i data-lucide="user-plus" class="h-4 w-4 text-green-400 mr-1"></i>
+                    <span>Not assigned to anyone</span>
+                </div>
+            </div>
+        </a>
+        
+        <a href="{% url 'assets:old_assets' %}" class="bg-slate-800 rounded-xl p-6 shadow-lg border border-slate-700 hover:bg-slate-700 hover:border-slate-600 transition-all duration-200 cursor-pointer group">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-slate-400 group-hover:text-yellow-400 transition-colors">Maintenance Alerts</p>
+                    <p class="mt-1 text-3xl font-semibold text-white">{{ maintenance_alerts }}</p>
+                </div>
+                <div class="p-3 rounded-lg bg-yellow-900/20 text-yellow-400 group-hover:bg-yellow-900/30 transition-colors">
+                    <i data-lucide="wrench" class="h-6 w-6"></i>
+                </div>
+            </div>
+            <div class="mt-4">
+                <div class="flex items-center text-sm text-slate-400">
+                    <i data-lucide="clock" class="h-4 w-4 text-yellow-400 mr-1"></i>
+                    <span>3+ years old</span>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <!-- Asset Lifecycle Board -->
+    <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700 mb-8">
+        <div class="px-6 py-5 border-b border-slate-700">
+            <h2 class="text-lg font-semibold text-white">Asset Lifecycle</h2>
+        </div>
+        <div class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <a href="{% url 'assets:unassigned_assets' %}" class="text-center hover:transform hover:scale-105 transition-all duration-200 cursor-pointer group">
+                    <div class="bg-blue-900/20 rounded-lg p-4 mb-2 group-hover:bg-blue-900/30 transition-colors">
+                        <i data-lucide="package" class="h-8 w-8 text-blue-400 mx-auto mb-2 group-hover:text-blue-300 transition-colors"></i>
+                        <p class="text-sm font-medium text-white">{{ available_assets }}</p>
+                        <p class="text-xs text-slate-400 group-hover:text-blue-300 transition-colors">Available</p>
+                    </div>
+                    <div class="text-xs text-slate-500 group-hover:text-slate-400 transition-colors">Ready to assign</div>
+                </a>
+                
+                <a href="{% url 'assets:assigned_assets' %}" class="text-center hover:transform hover:scale-105 transition-all duration-200 cursor-pointer group">
+                    <div class="bg-green-900/20 rounded-lg p-4 mb-2 group-hover:bg-green-900/30 transition-colors">
+                        <i data-lucide="user-check" class="h-8 w-8 text-green-400 mx-auto mb-2 group-hover:text-green-300 transition-colors"></i>
+                        <p class="text-sm font-medium text-white">{{ assigned_assets }}</p>
+                        <p class="text-xs text-slate-400 group-hover:text-green-300 transition-colors">Assigned</p>
+                    </div>
+                    <div class="text-xs text-slate-500 group-hover:text-slate-400 transition-colors">In use</div>
+                </a>
+                
+                <a href="{% url 'assets:maintenance_assets' %}" class="text-center hover:transform hover:scale-105 transition-all duration-200 cursor-pointer group">
+                    <div class="bg-yellow-900/20 rounded-lg p-4 mb-2 group-hover:bg-yellow-900/30 transition-colors">
+                        <i data-lucide="wrench" class="h-8 w-8 text-yellow-400 mx-auto mb-2 group-hover:text-yellow-300 transition-colors"></i>
+                        <p class="text-sm font-medium text-white">{{ maintenance_assets }}</p>
+                        <p class="text-xs text-slate-400 group-hover:text-yellow-300 transition-colors">Maintenance</p>
+                    </div>
+                    <div class="text-xs text-slate-500 group-hover:text-slate-400 transition-colors">Under repair</div>
+                </a>
+                
+                <a href="{% url 'assets:lost_assets' %}" class="text-center hover:transform hover:scale-105 transition-all duration-200 cursor-pointer group">
+                    <div class="bg-red-900/20 rounded-lg p-4 mb-2 group-hover:bg-red-900/30 transition-colors">
+                        <i data-lucide="alert-triangle" class="h-8 w-8 text-red-400 mx-auto mb-2 group-hover:text-red-300 transition-colors"></i>
+                        <p class="text-sm font-medium text-white">{{ lost_assets }}</p>
+                        <p class="text-xs text-slate-400 group-hover:text-red-300 transition-colors">Lost</p>
+                    </div>
+                    <div class="text-xs text-slate-500 group-hover:text-slate-400 transition-colors">Missing</div>
+                </a>
+                
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Analytics Charts -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <!-- Asset Status Distribution Donut Chart -->
+        <a href="{% url 'assets:assets' %}" class="bg-slate-800 rounded-xl shadow-lg border border-slate-700 hover:bg-slate-700 hover:border-slate-600 transition-all duration-200 cursor-pointer group">
+            <div class="px-6 py-5 border-b border-slate-700">
+                <h3 class="text-lg font-semibold text-white group-hover:text-blue-400 transition-colors">Asset Status Distribution</h3>
+            </div>
+            <div class="p-6">
+                <div class="flex items-center justify-center mb-6">
+                    <div class="relative w-40 h-40 donut-container">
+                        <!-- Donut Chart -->
+                        <svg class="w-40 h-40 transform -rotate-90" viewBox="0 0 100 100">
+                            <!-- Available -->
+                            <circle cx="50" cy="50" r="40" fill="none" stroke="#3b82f6" stroke-width="8" 
+                                    stroke-dasharray="{{ available_assets|floatformat:1 }} {{ total_assets|floatformat:1 }}" 
+                                    stroke-dashoffset="0">
+                            </circle>
+                            <!-- Assigned -->
+                            <circle cx="50" cy="50" r="40" fill="none" stroke="#10b981" stroke-width="8" 
+                                    stroke-dasharray="{{ assigned_assets|floatformat:1 }} {{ total_assets|floatformat:1 }}" 
+                                    stroke-dashoffset="{{ available_assets|floatformat:1|add:"-100" }}">
+                            </circle>
+                            <!-- Maintenance -->
+                            <circle cx="50" cy="50" r="40" fill="none" stroke="#f59e0b" stroke-width="8" 
+                                    stroke-dasharray="{{ maintenance_assets|floatformat:1 }} {{ total_assets|floatformat:1 }}" 
+                                    stroke-dashoffset="{{ available_assets|floatformat:1|add:assigned_assets|floatformat:1|add:"-100" }}">
+                            </circle>
+                            <!-- Lost -->
+                            <circle cx="50" cy="50" r="40" fill="none" stroke="#ef4444" stroke-width="8" 
+                                    stroke-dasharray="{{ lost_assets|floatformat:1 }} {{ total_assets|floatformat:1 }}" 
+                                    stroke-dashoffset="{{ available_assets|floatformat:1|add:assigned_assets|floatformat:1|add:maintenance_assets|floatformat:1|add:"-100" }}">
+                            </circle>
+                        </svg>
+                        <!-- Center Text -->
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <div class="text-center">
+                                <div class="text-xl font-bold text-white">{{ total_assets }}</div>
+                                <div class="text-xs text-slate-400">Total</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Legend -->
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 rounded-full bg-blue-500 mr-2"></div>
+                            <span class="text-xs text-white">Available</span>
+                        </div>
+                        <span class="text-xs text-slate-400">{{ available_assets }}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
+                            <span class="text-xs text-white">Assigned</span>
+                        </div>
+                        <span class="text-xs text-slate-400">{{ assigned_assets }}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 rounded-full bg-yellow-500 mr-2"></div>
+                            <span class="text-xs text-white">Maintenance</span>
+                        </div>
+                        <span class="text-xs text-slate-400">{{ maintenance_assets }}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 rounded-full bg-red-500 mr-2"></div>
+                            <span class="text-xs text-white">Lost</span>
+                        </div>
+                        <span class="text-xs text-slate-400">{{ lost_assets }}</span>
+                    </div>
+                </div>
+            </div>
+        </a>
+
+
+
+        <!-- Department Distribution Donut Chart -->
+        <a href="{% url 'assets:assigned_assets' %}" class="bg-slate-800 rounded-xl shadow-lg border border-slate-700 hover:bg-slate-700 hover:border-slate-600 transition-all duration-200 cursor-pointer group">
+            <div class="px-6 py-5 border-b border-slate-700">
+                <h3 class="text-lg font-semibold text-white group-hover:text-blue-400 transition-colors">Department Distribution</h3>
+            </div>
+            <div class="p-6">
+                <div class="flex items-center justify-center mb-6">
+                    <div class="relative w-40 h-40 donut-container">
+                        <!-- Donut Chart -->
+                        <svg class="w-40 h-40 transform -rotate-90" viewBox="0 0 100 100">
+                            {% for dept in department_stats|slice:":5" %}
+                                {% if forloop.first %}
+                                    <circle cx="50" cy="50" r="40" fill="none" stroke="#3b82f6" stroke-width="8" 
+                                            stroke-dasharray="{{ dept.count|floatformat:1 }} {{ assigned_assets|floatformat:1 }}" 
+                                            stroke-dashoffset="0">
+                                    </circle>
+                                {% elif forloop.counter == 2 %}
+                                    <circle cx="50" cy="50" r="40" fill="none" stroke="#10b981" stroke-width="8" 
+                                            stroke-dasharray="{{ dept.count|floatformat:1 }} {{ assigned_assets|floatformat:1 }}" 
+                                            stroke-dashoffset="{{ department_stats.0.count|floatformat:1|add:"-100" }}">
+                                    </circle>
+                                {% elif forloop.counter == 3 %}
+                                    <circle cx="50" cy="50" r="40" fill="none" stroke="#f59e0b" stroke-width="8" 
+                                            stroke-dasharray="{{ dept.count|floatformat:1 }} {{ assigned_assets|floatformat:1 }}" 
+                                            stroke-dashoffset="{{ department_stats.0.count|floatformat:1|add:department_stats.1.count|floatformat:1|add:"-100" }}">
+                                    </circle>
+                                {% elif forloop.counter == 4 %}
+                                    <circle cx="50" cy="50" r="40" fill="none" stroke="#ef4444" stroke-width="8" 
+                                            stroke-dasharray="{{ dept.count|floatformat:1 }} {{ assigned_assets|floatformat:1 }}" 
+                                            stroke-dashoffset="{{ department_stats.0.count|floatformat:1|add:department_stats.1.count|floatformat:1|add:department_stats.2.count|floatformat:1|add:"-100" }}">
+                                    </circle>
+                                {% elif forloop.counter == 5 %}
+                                    <circle cx="50" cy="50" r="40" fill="none" stroke="#8b5cf6" stroke-width="8" 
+                                            stroke-dasharray="{{ dept.count|floatformat:1 }} {{ assigned_assets|floatformat:1 }}" 
+                                            stroke-dashoffset="{{ department_stats.0.count|floatformat:1|add:department_stats.1.count|floatformat:1|add:department_stats.2.count|floatformat:1|add:department_stats.3.count|floatformat:1|add:"-100" }}">
+                                    </circle>
+                                {% endif %}
+                            {% endfor %}
+                        </svg>
+                        <!-- Center Text -->
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <div class="text-center">
+                                <div class="text-xl font-bold text-white">{{ assigned_assets }}</div>
+                                <div class="text-xs text-slate-400">Assigned</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Legend -->
+                <div class="space-y-2">
+                    {% for dept in department_stats|slice:":5" %}
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 rounded-full 
+                                    {% if forloop.counter == 1 %}bg-blue-500
+                                    {% elif forloop.counter == 2 %}bg-green-500
+                                    {% elif forloop.counter == 3 %}bg-yellow-500
+                                    {% elif forloop.counter == 4 %}bg-red-500
+                                    {% else %}bg-purple-500{% endif %} mr-2">
+                                </div>
+                                <span class="text-xs text-white">{{ dept.assigned_to__department|default:"Unknown" }}</span>
+                            </div>
+                            <span class="text-xs text-slate-400">{{ dept.count }}</span>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <!-- Box Analytics -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <!-- Asset Health Box -->
+        <a href="{% url 'assets:healthy_assets' %}" class="bg-slate-800 rounded-xl p-6 shadow-lg border border-slate-700 analytics-box hover:bg-slate-700 hover:border-slate-600 transition-all duration-200 cursor-pointer group">
+            <div class="flex items-center justify-between mb-4">
+                <div class="p-3 rounded-lg bg-blue-900/20 text-blue-400 group-hover:bg-blue-900/30 transition-colors">
+                    <i data-lucide="activity" class="h-6 w-6"></i>
+                </div>
+                <span class="text-sm text-slate-400">Health Score</span>
+            </div>
+            <div class="text-3xl font-bold text-white mb-2">
+                {% if total_assets > 0 %}
+                    {% widthratio available_assets total_assets 100 %}%
+                {% else %}
+                    0%
+                {% endif %}
+            </div>
+            <div class="text-sm text-slate-400">
+                {{ available_assets }} of {{ total_assets }} assets healthy
+            </div>
+        </a>
+
+        <!-- Asset Age Box -->
+        <a href="{% url 'assets:new_assets' %}" class="bg-slate-800 rounded-xl p-6 shadow-lg border border-slate-700 analytics-box hover:bg-slate-700 hover:border-slate-600 transition-all duration-200 cursor-pointer group">
+            <div class="flex items-center justify-between mb-4">
+                <div class="p-3 rounded-lg bg-green-900/20 text-green-400 group-hover:bg-green-900/30 transition-colors">
+                    <i data-lucide="calendar" class="h-6 w-6"></i>
+                </div>
+                <span class="text-sm text-slate-400">New Assets</span>
+            </div>
+            <div class="text-3xl font-bold text-white mb-2">{{ new_assets }}</div>
+            <div class="text-sm text-slate-400">
+                Not assigned to anyone
+            </div>
+        </a>
+
+        <!-- Maintenance Box -->
+        <a href="{% url 'assets:attention_assets' %}" class="bg-slate-800 rounded-xl p-6 shadow-lg border border-slate-700 analytics-box hover:bg-slate-700 hover:border-slate-600 transition-all duration-200 cursor-pointer group">
+            <div class="flex items-center justify-between mb-4">
+                <div class="p-3 rounded-lg bg-yellow-900/20 text-yellow-400 group-hover:bg-yellow-900/30 transition-colors">
+                    <i data-lucide="wrench" class="h-6 w-6"></i>
+                </div>
+                <span class="text-sm text-slate-400">Need Attention</span>
+            </div>
+            <div class="text-3xl font-bold text-white mb-2">{{ maintenance_alerts }}</div>
+            <div class="text-sm text-slate-400">
+                Assets 2+ years old
+            </div>
+        </a>
+
+        <!-- Lost Assets Box -->
+        <a href="{% url 'assets:lost_assets' %}" class="bg-slate-800 rounded-xl p-6 shadow-lg border border-slate-700 analytics-box hover:bg-slate-700 hover:border-slate-600 transition-all duration-200 cursor-pointer group">
+            <div class="flex items-center justify-between mb-4">
+                <div class="p-3 rounded-lg bg-red-900/20 text-red-400 group-hover:bg-red-900/30 transition-colors">
+                    <i data-lucide="alert-triangle" class="h-6 w-6"></i>
+                </div>
+                <span class="text-sm text-slate-400">Lost Assets</span>
+            </div>
+            <div class="text-3xl font-bold text-white mb-2">{{ lost_assets }}</div>
+            <div class="text-sm text-slate-400">
+                Require immediate action
+            </div>
+        </a>
+    </div>
+
+    <!-- Office Location Statistics -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <a href="{% url 'assets:bernem_office_assets' %}" class="bg-slate-800 rounded-xl p-6 shadow-lg border border-slate-700 hover:bg-slate-700 hover:border-slate-600 transition-all duration-200 cursor-pointer group">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-slate-400 group-hover:text-blue-400 transition-colors">Bernem Office</p>
+                    <p class="mt-1 text-3xl font-semibold text-white">{{ bernem_assets }}</p>
+                </div>
+                <div class="p-3 rounded-lg bg-blue-900/20 text-blue-400 group-hover:bg-blue-900/30 transition-colors">
+                    <i data-lucide="building" class="h-6 w-6"></i>
+                </div>
+            </div>
+        </a>
+        
+        <a href="{% url 'assets:hamburg_office_assets' %}" class="bg-slate-800 rounded-xl p-6 shadow-lg border border-slate-700 hover:bg-slate-700 hover:border-slate-600 transition-all duration-200 cursor-pointer group">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-slate-400 group-hover:text-green-400 transition-colors">Hamburg Office</p>
+                    <p class="mt-1 text-3xl font-semibold text-white">{{ hamburg_assets }}</p>
+                </div>
+                <div class="p-3 rounded-lg bg-green-900/20 text-green-400 group-hover:bg-green-900/30 transition-colors">
+                    <i data-lucide="building" class="h-6 w-6"></i>
+                </div>
+            </div>
+        </a>
+        
+        <a href="{% url 'assets:other_locations_assets' %}" class="bg-slate-800 rounded-xl p-6 shadow-lg border border-slate-700 hover:bg-slate-700 hover:border-slate-600 transition-all duration-200 cursor-pointer group">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-slate-400 group-hover:text-purple-400 transition-colors">Other Locations</p>
+                    <p class="mt-1 text-3xl font-semibold text-white">{{ other_assets }}</p>
+                </div>
+                <div class="p-3 rounded-lg bg-purple-900/20 text-purple-400 group-hover:bg-purple-900/30 transition-colors">
+                    <i data-lucide="map-pin" class="h-6 w-6"></i>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <!-- Search and Filters -->
+    <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700 mb-8">
+        <div class="px-6 py-5 border-b border-slate-700 flex items-center justify-between">
+            <h2 class="text-lg font-semibold text-white">Asset Management</h2>
+            <div class="flex space-x-3">
+                <a href="{% url 'assets:unassigned_assets' %}" class="inline-flex items-center px-4 py-2 border border-slate-600 text-sm font-medium rounded-md text-slate-300 bg-slate-700 hover:bg-slate-600">
+                    <i data-lucide="user-x" class="mr-2 h-4 w-4"></i>
+                    Unassigned Assets
+                </a>
+                <button onclick="openAddAssetModal()" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <i data-lucide="plus" class="mr-2 h-4 w-4"></i>
+                    Add Asset
+                </button>
+            </div>
+        </div>
+        
+        <div class="px-6 py-4">
+            <form method="GET" class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                <div>
+                    <input type="text" name="search" value="{{ search_query|default:'' }}" placeholder="Search assets..." 
+                           class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <select name="status" class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">All Status</option>
+                        <option value="available" {% if status_filter == 'available' %}selected{% endif %}>Available</option>
+                        <option value="assigned" {% if status_filter == 'assigned' %}selected{% endif %}>Assigned</option>
+                        <option value="maintenance" {% if status_filter == 'maintenance' %}selected{% endif %}>Maintenance</option>
+                        <option value="lost" {% if status_filter == 'lost' %}selected{% endif %}>Lost</option>
+                    </select>
+                </div>
+                <div>
+                    <select name="asset_type" class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">All Types</option>
+                        <option value="laptop" {% if asset_type_filter == 'laptop' %}selected{% endif %}>Laptop</option>
+                        <option value="desktop" {% if asset_type_filter == 'desktop' %}selected{% endif %}>Desktop</option>
+                        <option value="monitor" {% if asset_type_filter == 'monitor' %}selected{% endif %}>Monitor</option>
+                        <option value="keyboard" {% if asset_type_filter == 'keyboard' %}selected{% endif %}>Keyboard</option>
+                        <option value="mouse" {% if asset_type_filter == 'mouse' %}selected{% endif %}>Mouse</option>
+                        <option value="phone" {% if asset_type_filter == 'phone' %}selected{% endif %}>Phone</option>
+                        <option value="tablet" {% if asset_type_filter == 'tablet' %}selected{% endif %}>Tablet</option>
+                        <option value="headphones" {% if asset_type_filter == 'headphones' %}selected{% endif %}>Headphones</option>
+                    </select>
+                </div>
+                <div>
+                    <select name="office" class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">All Offices</option>
+                        <option value="bernem" {% if office_filter == 'bernem' %}selected{% endif %}>Bernem Office</option>
+                        <option value="hamburg" {% if office_filter == 'hamburg' %}selected{% endif %}>Hamburg Office</option>
+                        <option value="other" {% if office_filter == 'other' %}selected{% endif %}>Other Location</option>
+                    </select>
+                </div>
+                <div class="flex gap-2">
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <i data-lucide="search" class="h-4 w-4"></i>
+                    </button>
+                    <a href="{% url 'assets:assets' %}" class="px-4 py-2 bg-slate-600 text-white rounded-md hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500">
+                        <i data-lucide="refresh-cw" class="h-4 w-4"></i>
+                    </a>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Asset Table -->
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-700">
+                <thead class="bg-slate-800">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Asset</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Type</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                            <div class="flex items-center">
+                                Health
+                                <button onclick="showHealthInfo()" class="ml-1 text-slate-500 hover:text-slate-300 transition-colors">
+                                    <i data-lucide="help-circle" class="h-3 w-3 cursor-pointer"></i>
+                                </button>
+                            </div>
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Status</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Office</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Assigned To</th>
+                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-slate-800 divide-y divide-slate-700">
+                    {% for asset in assets %}
+                    <tr class="hover:bg-slate-700/50 transition-colors cursor-pointer" onclick="handleRowClick(event, '{{ asset.id }}')">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div>
+                                <div class="text-sm font-medium text-white">{{ asset.name }}</div>
+                                <div class="text-sm text-slate-400">{{ asset.model|default:"No model" }}</div>
+                                <div class="text-xs text-slate-500">{{ asset.serial_number }}</div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+                                {{ asset.get_asset_type_display }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <button onclick="showAssetHealthDetails('{{ asset.name }}', {{ asset.health_score }}, '{{ asset|health_reference_date|date:"M d, Y"|default:"Not specified" }}', '{{ asset.asset_type }}')" class="flex items-center hover:bg-slate-700/50 rounded px-2 py-1 transition-colors" onclick="event.stopPropagation()">
+                                <div class="w-16 bg-slate-700 rounded-full h-2 mr-2">
+                                    <div class="h-2 rounded-full {% if asset.health_score >= 80 %}bg-green-500{% elif asset.health_score >= 60 %}bg-yellow-500{% else %}bg-red-500{% endif %}" 
+                                         style="width: {{ asset.health_score }}%"></div>
+                                </div>
+                                <span class="text-xs text-slate-400">{{ asset.health_score }}%</span>
+                                <i data-lucide="info" class="h-3 w-3 text-slate-500 ml-1"></i>
+                            </button>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                {% if asset.status == 'available' %}bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400
+                                {% elif asset.status == 'assigned' %}bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400
+                                {% elif asset.status == 'maintenance' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400
+                                {% else %}bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400{% endif %}">
+                                {{ asset.get_status_display }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                {% if asset.office_location == 'bernem' %}bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400
+                                {% elif asset.office_location == 'hamburg' %}bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400
+                                {% else %}bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400{% endif %}">
+                                {{ asset.get_office_location_display }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if asset.assigned_to %}
+                                <div class="flex items-center">
+                                    <img class="h-8 w-8 rounded-full mr-3" src="{{ asset.assigned_to|safe_employee_avatar_url }}" alt="{{ asset.assigned_to.name }}" >
+                                    <div class="flex flex-col">
+                                        <span class="text-white font-medium text-sm">{{ asset.assigned_to.name|truncatechars:15 }}</span>
+                                        <span class="text-slate-500 text-xs">{{ asset.assigned_to.department|default:"No dept" }}</span>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <div class="flex items-center">
+                                    <div class="h-8 w-8 rounded-full bg-slate-600 flex items-center justify-center mr-3">
+                                        <i data-lucide="user-x" class="h-4 w-4 text-slate-400"></i>
+                                    </div>
+                                    <span class="text-slate-500">Unassigned</span>
+                                </div>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <button onclick="editAsset('{{ asset.id }}')" class="text-blue-500 hover:text-blue-700 mr-3" title="Edit Asset" onclick="event.stopPropagation()">
+                                <i data-lucide="edit" class="h-4 w-4"></i>
+                            </button>
+                            <button onclick="viewAsset('{{ asset.id }}')" class="text-green-500 hover:text-green-700 mr-3" title="View Details" onclick="event.stopPropagation()">
+                                <i data-lucide="eye" class="h-4 w-4"></i>
+                            </button>
+
+                            {% if request.user.is_staff or request.user.is_superuser or asset.can_delete %}
+                                <button onclick="deleteAsset('{{ asset.id }}')" class="text-red-500 hover:text-red-700" title="Delete Asset" onclick="event.stopPropagation()">
+                                    <i data-lucide="trash-2" class="h-4 w-4"></i>
+                                </button>
+                            {% else %}
+                                <button class="text-slate-400 cursor-not-allowed" title="Delete not allowed - Admin only" onclick="event.stopPropagation()">
+                                    <i data-lucide="trash-2" class="h-4 w-4"></i>
+                                </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="px-6 py-4 text-center text-slate-400">
+                            No assets found matching your criteria.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Infinite Scroll Loading Indicator -->
+        <div id="loading-indicator" class="hidden px-6 py-4 border-t border-slate-700 text-center">
+            <div class="inline-flex items-center text-slate-400">
+                <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500 mr-2"></div>
+                Loading more assets...
+            </div>
+        </div>
+        
+        <!-- Load More Button (Fallback) -->
+        <div id="load-more-button" class="hidden px-6 py-4 border-t border-slate-700 text-center">
+            <button onclick="loadMoreAssets()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                Load More Assets
+            </button>
+        </div>
+        
+        <!-- End of Results Indicator -->
+        <div id="end-of-results" class="hidden px-6 py-4 border-t border-slate-700 text-center text-slate-400">
+            <div class="text-sm">
+                Showing {{ assets.paginator.count }} of {{ assets.paginator.count }} results
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Asset Modal -->
+<div id="addAssetModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-slate-800 rounded-lg shadow-xl max-w-2xl w-full">
+            <div class="px-6 py-4 border-b border-slate-700 flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-white">Add New Asset</h3>
+                <button onclick="closeAddAssetModal()" class="text-slate-400 hover:text-white">
+                    <i data-lucide="x" class="h-6 w-6"></i>
+                </button>
+            </div>
+            
+            <form method="POST" action="{% url 'assets:add_asset' %}">
+                {% csrf_token %}
+                <div class="px-6 py-4">
+                    <!-- Barcode Scanner Section -->
+                    <div class="mb-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h4 class="text-md font-medium text-white">Barcode Scanner</h4>
+                            <button type="button" onclick="toggleScanner()" class="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                <i data-lucide="camera" class="mr-2 h-4 w-4"></i>
+                                <span id="scannerButtonText">Scan Barcode</span>
+                            </button>
+                    </div>
+                    
+                        <!-- Scanner Container -->
+                        <div id="scannerContainer" class="hidden">
+                            <div class="bg-slate-900 rounded-lg p-4 mb-4">
+                                <!-- Scanner Status -->
+                                <div id="scannerStatus" class="text-center mb-4">
+                                    <div class="flex items-center justify-center space-x-2">
+                                        <div id="statusIndicator" class="w-3 h-3 rounded-full bg-gray-500"></div>
+                                        <span id="statusText" class="text-sm text-slate-400">Checking camera permissions...</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center justify-center mb-4">
+                                    <div class="relative">
+                                        <video id="scanner" class="w-full max-w-md h-64 bg-black rounded-lg"></video>
+                                        <canvas id="scannerCanvas" class="w-full max-w-md h-64 bg-black rounded-lg hidden"></canvas>
+                                        
+                                        <!-- Scanner Overlay -->
+                                        <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                            <div id="scannerFrame" class="border-2 border-blue-500 rounded-lg transition-all duration-300">
+                                                <div id="scannerTarget" class="w-48 h-32 border-2 border-blue-500 rounded bg-transparent transition-all duration-300"></div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Barcode Detection Feedback -->
+                                        <div id="barcodeDetectionFeedback" class="absolute inset-0 flex items-center justify-center pointer-events-none hidden">
+                                            <div class="text-center text-white">
+                                                <div class="animate-pulse">
+                                                    <i data-lucide="check-circle" class="h-12 w-12 text-green-400 mx-auto mb-2"></i>
+                                                    <p class="text-lg font-semibold text-green-400">Barcode Detected!</p>
+                                                    <p class="text-sm text-green-300">Capturing product information...</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Scanning Animation -->
+                                        <div id="scanningAnimation" class="absolute inset-0 hidden">
+                                            <div class="scanning-line"></div>
+                                        </div>
+                                        
+                                        <!-- Camera Status Overlay -->
+                                        <div id="cameraStatusOverlay" class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-lg hidden">
+                                            <div class="text-center text-white">
+                                                <i data-lucide="camera" class="h-8 w-8 mx-auto mb-2"></i>
+                                                <p class="text-sm">Camera starting...</p>
+                                                <p class="text-xs text-gray-300 mt-1">If screen stays black, try refreshing</p>
+                                                <div class="mt-2 space-y-1">
+                                                    <button onclick="refreshCamera()" class="block w-full px-3 py-1 bg-yellow-600 text-xs text-white rounded hover:bg-yellow-700">
+                                                        <i data-lucide="refresh-cw" class="h-3 w-3 mr-1"></i>
+                                                        Refresh Camera
+                                                    </button>
+                                                    <button onclick="tryAlternativeCameraConfig()" class="block w-full px-3 py-1 bg-orange-600 text-xs text-white rounded hover:bg-orange-700">
+                                                        <i data-lucide="camera" class="h-3 w-3 mr-1"></i>
+                                                        Try Front Camera
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="text-center">
+                                    <p class="text-sm text-slate-400 mb-2">Position barcode within the blue frame</p>
+                                    <div class="flex justify-center space-x-2">
+                                        <button type="button" id="startScanBtn" onclick="startScanner()" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed">
+                                            <i data-lucide="play" class="h-4 w-4 mr-1"></i>
+                                            Start Camera
+                                        </button>
+                                        <button type="button" onclick="stopScanner()" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">
+                                            <i data-lucide="square" class="h-4 w-4 mr-1"></i>
+                                            Stop
+                                        </button>
+                                        <button type="button" onclick="openBarcodeScannerApp()" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                                            <i data-lucide="scan" class="h-4 w-4 mr-1"></i>
+                                            Open Barcode Scanner App
+                                        </button>
+                                    </div>
+
+                                </div>
+                                
+
+                            </div>
+                        </div>
+                        
+                        <!-- Manual Barcode Input -->
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-slate-400 mb-2">Barcode (Manual Entry)</label>
+                            <div class="flex">
+                                <input type="text" id="barcodeInput" placeholder="Enter barcode manually or try these test codes: 1234567890123, 9876543210987..." 
+                                       class="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-l-md text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <button type="button" onclick="lookupBarcode()" class="px-4 py-2 bg-blue-600 text-white rounded-r-md hover:bg-blue-700">
+                                    <i data-lucide="search" class="h-4 w-4"></i>
+                                </button>
+                            </div>
+                            
+                            <!-- Test Barcodes -->
+                            <div class="mt-2">
+                                <p class="text-xs text-slate-500 mb-1">Test barcodes:</p>
+                                <div class="flex flex-wrap gap-1">
+                                    <button type="button" onclick="testBarcode('1234567890123')" class="px-2 py-1 bg-slate-600 text-xs text-white rounded hover:bg-slate-500">
+                                        Dell Laptop
+                                    </button>
+                                    <button type="button" onclick="testBarcode('9876543210987')" class="px-2 py-1 bg-slate-600 text-xs text-white rounded hover:bg-slate-500">
+                                        Apple Keyboard
+                                    </button>
+                                    <button type="button" onclick="testBarcode('4567891234567')" class="px-2 py-1 bg-slate-600 text-xs text-white rounded hover:bg-slate-500">
+                                        Samsung Monitor
+                                    </button>
+                                    <button type="button" onclick="testBarcode('7891234567890')" class="px-2 py-1 bg-slate-600 text-xs text-white rounded hover:bg-slate-500">
+                                        Logitech Mouse
+                                    </button>
+                                    <button type="button" onclick="testBarcode('3216549873210')" class="px-2 py-1 bg-slate-600 text-xs text-white rounded hover:bg-slate-500">
+                                        Sony Headphones
+                                    </button>
+                                </div>
+
+                            </div>
+                        </div>
+                        
+                        <!-- Scan Result -->
+                        <div id="scanResult" class="hidden bg-green-900/20 border border-green-700 rounded-lg p-3 mb-4">
+                            <div class="flex items-center">
+                                <i data-lucide="check-circle" class="h-5 w-5 text-green-400 mr-2"></i>
+                                <span class="text-green-400 text-sm">Barcode scanned successfully!</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Asset Details Form -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                            <label class="block text-sm font-medium text-slate-400 mb-2">Asset Name</label>
+                            <input type="text" name="name" id="assetName" required 
+                                   class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                    <div>
+                            <label class="block text-sm font-medium text-slate-400 mb-2">Asset Type</label>
+                            <div class="relative">
+                                <input type="text" name="asset_type" id="assetType" required 
+                                       class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                                       placeholder="Select or type asset type" 
+                                       autocomplete="off">
+                                <button type="button" id="assetType_toggle" 
+                                        class="absolute inset-y-0 right-0 flex items-center pr-2 text-slate-400 hover:text-slate-300">
+                                    <i data-lucide="chevron-down" class="h-4 w-4"></i>
+                                </button>
+                                <div id="assetType_dropdown" class="hidden absolute z-10 w-full mt-1 bg-slate-700 border border-slate-600 rounded-md shadow-lg max-h-60 overflow-auto">
+                                    <div class="py-1">
+                                        <div class="asset-type-option px-3 py-2 text-sm text-white hover:bg-slate-600 cursor-pointer" data-value="laptop">Laptop</div>
+                                        <div class="asset-type-option px-3 py-2 text-sm text-white hover:bg-slate-600 cursor-pointer" data-value="desktop">Desktop</div>
+                                        <div class="asset-type-option px-3 py-2 text-sm text-white hover:bg-slate-600 cursor-pointer" data-value="monitor">Monitor</div>
+                                        <div class="asset-type-option px-3 py-2 text-sm text-white hover:bg-slate-600 cursor-pointer" data-value="keyboard">Keyboard</div>
+                                        <div class="asset-type-option px-3 py-2 text-sm text-white hover:bg-slate-600 cursor-pointer" data-value="mouse">Mouse</div>
+                                        <div class="asset-type-option px-3 py-2 text-sm text-white hover:bg-slate-600 cursor-pointer" data-value="phone">Phone</div>
+                                        <div class="asset-type-option px-3 py-2 text-sm text-white hover:bg-slate-600 cursor-pointer" data-value="tablet">Tablet</div>
+                                        <div class="asset-type-option px-3 py-2 text-sm text-white hover:bg-slate-600 cursor-pointer" data-value="headphones">Headphones</div>
+                                        <div class="asset-type-option px-3 py-2 text-sm text-white hover:bg-slate-600 cursor-pointer" data-value="other">Other</div>
+                                    </div>
+                                </div>
+                            </div>
+                    </div>
+                    <div>
+                            <label class="block text-sm font-medium text-slate-400 mb-2">Serial Number</label>
+                            <input type="text" name="serial_number" id="serialNumber" required 
+                                   class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                            <label class="block text-sm font-medium text-slate-400 mb-2">Model</label>
+                            <input type="text" name="model" id="assetModel" 
+                                   class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                            <label class="block text-sm font-medium text-slate-400 mb-2">Manufacturer</label>
+                            <input type="text" name="manufacturer" id="manufacturer" 
+                                   class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                            <label class="block text-sm font-medium text-slate-400 mb-2">Purchase Date</label>
+                            <input type="date" name="purchase_date" id="purchaseDate" 
+                                   class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                            <label class="block text-sm font-medium text-slate-400 mb-2">Status</label>
+                            <select name="status" id="assetStatus" required 
+                                    class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="available">Available</option>
+                                <option value="assigned">Assigned</option>
+                                <option value="maintenance">Maintenance</option>
+                                <option value="lost">Lost</option>
+                                <option value="retired">Retired</option>
+                            </select>
+                    </div>
+                    <div>
+                            <label class="block text-sm font-medium text-slate-400 mb-2">Office Location</label>
+                            <select name="office_location" id="officeLocation" required 
+                                    class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="bernem">Bernem Office</option>
+                                <option value="hamburg">Hamburg Office</option>
+                                <option value="other">Other Location</option>
+                            </select>
+                    </div>
+                </div>
+                
+                    <!-- Auto-populated Info Display -->
+                    <div id="autoPopulatedInfo" class="hidden mt-4 bg-blue-900/20 border border-blue-700 rounded-lg p-3">
+                        <div class="flex items-center mb-2">
+                            <i data-lucide="info" class="h-4 w-4 text-blue-400 mr-2"></i>
+                            <span class="text-blue-400 text-sm font-medium">Auto-populated from barcode</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 text-xs text-slate-300">
+                            <div><span class="font-medium">Product:</span> <span id="autoProductName">-</span></div>
+                            <div><span class="font-medium">Category:</span> <span id="autoCategory">-</span></div>
+                            <div><span class="font-medium">Specs:</span> <span id="autoSpecs">-</span></div>
+                            <div><span class="font-medium">Warranty:</span> <span id="autoWarranty">-</span></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="px-6 py-4 border-t border-slate-700 flex justify-end space-x-3">
+                    <button type="button" onclick="closeAddAssetModal()" class="px-4 py-2 bg-slate-600 text-white rounded-md hover:bg-slate-700">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                        Add Asset
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Health Info Modal -->
+<div id="healthInfoModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700 max-w-md w-full">
+            <div class="px-6 py-4 border-b border-slate-700 flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-white">Asset Health Score Guide</h3>
+                <button onclick="closeHealthInfo()" class="text-slate-400 hover:text-white">
+                    <i data-lucide="x" class="h-5 w-5"></i>
+                </button>
+            </div>
+            <div class="px-6 py-6">
+                <div class="space-y-4">
+                    <div class="text-sm text-slate-300">
+                        <p class="mb-4">The health score indicates the operational condition and age-based reliability of assets. It helps identify assets that may need maintenance or replacement.</p>
+                    
+                    <div class="space-y-3">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-4 h-4 bg-green-500 rounded-full"></div>
+                            <div class="flex-1">
+                                <div class="text-white font-medium">100% - Excellent</div>
+                                <div class="text-slate-400 text-xs">New assets (0-1 year old)</div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center space-x-3">
+                            <div class="w-4 h-4 bg-green-400 rounded-full"></div>
+                            <div class="flex-1">
+                                <div class="text-white font-medium">85% - Very Good</div>
+                                <div class="text-slate-400 text-xs">Assets 1-2 years old</div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center space-x-3">
+                            <div class="w-4 h-4 bg-yellow-500 rounded-full"></div>
+                            <div class="flex-1">
+                                <div class="text-white font-medium">70% - Good</div>
+                                <div class="text-slate-400 text-xs">Assets 2-3 years old</div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center space-x-3">
+                            <div class="w-4 h-4 bg-orange-500 rounded-full"></div>
+                            <div class="flex-1">
+                                <div class="text-white font-medium">55% - Fair</div>
+                                <div class="text-slate-400 text-xs">Assets 3-4 years old</div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center space-x-3">
+                            <div class="w-4 h-4 bg-orange-400 rounded-full"></div>
+                            <div class="flex-1">
+                                <div class="text-white font-medium">45% - Mature</div>
+                                <div class="text-slate-400 text-xs">Assets 4-6 years old</div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center space-x-3">
+                            <div class="w-4 h-4 bg-red-500 rounded-full"></div>
+                            <div class="flex-1">
+                                <div class="text-white font-medium">40% - Aged</div>
+                                <div class="text-slate-400 text-xs">Assets 6+ years old - Consider replacement</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6 p-3 bg-blue-900/20 border border-blue-700 rounded-lg">
+                        <div class="flex items-start">
+                            <i data-lucide="info" class="h-4 w-4 text-blue-400 mr-2 mt-0.5"></i>
+                            <div class="text-xs text-blue-300">
+                                <div class="font-medium mb-1">Pro Tips:</div>
+                                <div>• Monitor assets below 70% health closely</div>
+                                <div>• Plan replacements for assets below 55%</div>
+                                <div>• Update purchase dates for accurate health scores</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-slate-700 flex justify-end">
+                <button onclick="closeHealthInfo()" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                    Got it
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Barcode Scanner Variables
+let stream = null;
+let scannerActive = false;
+let barcodeDetector = null;
+let compatibilityChecked = false;
+
+// Initialize barcode scanner
+async function initializeBarcodeScanner() {
+    try {
+        console.log('Initializing barcode scanner compatibility...');
+        
+        // Update compatibility status
+        updateCompatibilityStatus();
+        
+        // Check if BarcodeDetector API is available
+        if ('BarcodeDetector' in window) {
+            try {
+                barcodeDetector = new BarcodeDetector({
+                    formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39']
+                });
+                console.log('Using native BarcodeDetector API');
+                updateBarcodeSupport('✓ Native API', 'text-green-400');
+            } catch (e) {
+                console.log('BarcodeDetector failed to initialize:', e);
+                updateBarcodeSupport('✗ Not available', 'text-red-400');
+                barcodeDetector = null;
+            }
+        } else {
+            console.log('Native BarcodeDetector not available');
+            updateBarcodeSupport('✗ Not available', 'text-red-400');
+            barcodeDetector = null;
+        }
+        
+        // Check QuaggaJS availability
+        if (typeof Quagga !== 'undefined') {
+            console.log('QuaggaJS available');
+            updateFallbackSupport('✓ Available', 'text-green-400');
+        } else {
+            console.log('QuaggaJS not available, trying to load...');
+            updateFallbackSupport('⏳ Loading...', 'text-yellow-400');
+            
+            // Try to load QuaggaJS dynamically
+            try {
+                const script = document.createElement('script');
+                script.src = 'https://unpkg.com/quagga@0.12.1/dist/quagga.min.js';
+                script.onload = function() {
+                    console.log('QuaggaJS loaded dynamically');
+                    updateFallbackSupport('✓ Available', 'text-green-400');
+                };
+                script.onerror = function() {
+                    console.log('Failed to load QuaggaJS dynamically');
+                    updateFallbackSupport('✗ Loading failed', 'text-red-400');
+                };
+                document.head.appendChild(script);
+            } catch (error) {
+                console.log('Error loading QuaggaJS:', error);
+                updateFallbackSupport('✗ Loading failed', 'text-red-400');
+            }
+        }
+        
+        compatibilityChecked = true;
+    } catch (error) {
+        console.error('Error initializing barcode detector:', error);
+        updateBarcodeSupport('✗ Error', 'text-red-400');
+    }
+}
+
+// Update compatibility status
+function updateCompatibilityStatus() {
+    // Check camera support
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        updateCameraSupport('✓ Available', 'text-green-400');
+    } else {
+        updateCameraSupport('✗ Not supported', 'text-red-400');
+    }
+}
+
+// Update individual support indicators
+function updateCameraSupport(text, className) {
+    const element = document.getElementById('cameraSupport');
+    if (element) {
+        element.textContent = text;
+        element.className = className;
+    }
+}
+
+function updateBarcodeSupport(text, className) {
+    const element = document.getElementById('barcodeSupport');
+    if (element) {
+        element.textContent = text;
+        element.className = className;
+    }
+}
+
+function updateFallbackSupport(text, className) {
+    const element = document.getElementById('fallbackSupport');
+    if (element) {
+        element.textContent = text;
+        element.className = className;
+    }
+}
+
+// Update scanner status
+function updateScannerStatus(text, color = 'bg-gray-500') {
+    const statusText = document.getElementById('statusText');
+    const statusIndicator = document.getElementById('statusIndicator');
+    
+    if (statusText) statusText.textContent = text;
+    if (statusIndicator) {
+        statusIndicator.className = `w-3 h-3 rounded-full ${color}`;
+    }
+}
+
+// Toggle scanner visibility
+function toggleScanner() {
+    const container = document.getElementById('scannerContainer');
+    const buttonText = document.getElementById('scannerButtonText');
+    
+    if (container.classList.contains('hidden')) {
+        container.classList.remove('hidden');
+        buttonText.textContent = 'Hide Scanner';
+        initializeBarcodeScanner();
+    } else {
+        container.classList.add('hidden');
+        buttonText.textContent = 'Scan Barcode';
+        stopScanner();
+    }
+}
+
+// Start the camera scanner
+async function startScanner() {
+    console.log('Starting scanner...');
+    
+    if (!compatibilityChecked) {
+        await initializeBarcodeScanner();
+    }
+    
+    updateScannerStatus('Starting camera...', 'bg-yellow-500');
+    const startBtn = document.getElementById('startScanBtn');
+    if (startBtn) startBtn.disabled = true;
+    
+    try {
+        const video = document.getElementById('scanner');
+        
+        // Check camera permissions first
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            throw new Error('Camera not supported in this browser');
+        }
+        
+        // Try native BarcodeDetector first
+        if (barcodeDetector) {
+            console.log('Using native BarcodeDetector...');
+            updateScannerStatus('Using native barcode detection...', 'bg-blue-500');
+            
+            // Show camera status overlay
+            const cameraOverlay = document.getElementById('cameraStatusOverlay');
+            if (cameraOverlay) {
+                cameraOverlay.classList.remove('hidden');
+                cameraOverlay.querySelector('p').textContent = 'Starting camera...';
+            }
+            
+            // Set video element attributes for better compatibility
+            video.autoplay = true;
+            video.playsInline = true;
+            video.muted = true; // Required for autoplay in most browsers
+            video.controls = false;
+            
+            // Request camera access with more flexible constraints
+            stream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    facingMode: { ideal: 'environment' },
+                    width: { min: 320, ideal: 640, max: 1280 },
+                    height: { min: 240, ideal: 480, max: 720 },
+                    frameRate: { ideal: 30 }
+                },
+                audio: false
+            });
+            
+            video.srcObject = stream;
+            
+            // Wait for video to be ready with better error handling
+            await new Promise((resolve, reject) => {
+                const timeout = setTimeout(() => {
+                    reject(new Error('Video loading timeout'));
+                }, 15000); // 15 second timeout
+                
+                            video.onloadedmetadata = () => {
+                clearTimeout(timeout);
+                console.log('Video metadata loaded:', video.videoWidth, 'x', video.videoHeight);
+                
+                // Force video to play immediately
+                video.play().then(() => {
+                    console.log('Video started playing successfully');
+                    
+                    // Hide camera status overlay if video is working
+                    const cameraOverlay = document.getElementById('cameraStatusOverlay');
+                    if (cameraOverlay) {
+                        cameraOverlay.classList.add('hidden');
+                    }
+                    
+                    resolve();
+                }).catch(playError => {
+                    console.error('Video play failed:', playError);
+                    // Try with muted if autoplay fails
+                    video.muted = true;
+                    video.play().then(() => {
+                        console.log('Video started playing with muted audio');
+                        resolve();
+                    }).catch(mutedError => {
+                        console.error('Muted video play also failed:', mutedError);
+                        reject(mutedError);
+                    });
+                });
+            };
+                
+                video.onerror = (error) => {
+                    clearTimeout(timeout);
+                    console.error('Video error:', error);
+                    reject(error);
+                };
+                
+                video.oncanplay = () => {
+                    console.log('Video can play');
+                };
+            });
+            
+            scannerActive = true;
+            
+            // Check if video is actually displaying content
+            setTimeout(() => {
+                if (video.videoWidth > 0 && video.videoHeight > 0) {
+                    console.log('Camera resolution:', video.videoWidth, 'x', video.videoHeight);
+                    updateScannerStatus(`Camera active (${video.videoWidth}x${video.videoHeight}) - scanning...`, 'bg-green-500');
+                } else {
+                    console.log('Camera may be black - showing overlay');
+                    const cameraOverlay = document.getElementById('cameraStatusOverlay');
+                    if (cameraOverlay) {
+                        cameraOverlay.classList.remove('hidden');
+                        cameraOverlay.querySelector('p').textContent = 'Camera not displaying - try refreshing';
+                    }
+                    updateScannerStatus('Camera issue - try refresh', 'bg-yellow-500');
+                }
+            }, 1000);
+            
+            // Start barcode detection
+            detectBarcodes();
+            
+        } else if (typeof Quagga !== 'undefined') {
+            console.log('Using QuaggaJS fallback...');
+            updateScannerStatus('Using QuaggaJS scanner...', 'bg-blue-500');
+            
+            // Show camera status overlay for QuaggaJS
+            const cameraOverlay = document.getElementById('cameraStatusOverlay');
+            if (cameraOverlay) {
+                cameraOverlay.classList.remove('hidden');
+                cameraOverlay.querySelector('p').textContent = 'Initializing QuaggaJS...';
+            }
+            
+            // Set video element attributes for QuaggaJS
+            video.autoplay = true;
+            video.playsInline = true;
+            video.muted = true;
+            video.controls = false;
+            
+            // Use QuaggaJS with better configuration
+            Quagga.init({
+                inputStream: {
+                    name: "Live",
+                    type: "LiveStream",
+                    target: video,
+                    constraints: {
+                        facingMode: { ideal: "environment" },
+                        width: { min: 320, ideal: 640, max: 1280 },
+                        height: { min: 240, ideal: 480, max: 720 },
+                        frameRate: { ideal: 30 }
+                    }
+                },
+                locator: {
+                    patchSize: "medium",
+                    halfSample: true
+                },
+                numOfWorkers: 1,
+                frequency: 10,
+                decoder: {
+                    readers: [
+                        "ean_reader",
+                        "ean_8_reader",
+                        "upc_reader",
+                        "code_128_reader",
+                        "code_39_reader"
+                    ]
+                },
+                locate: true
+            }, function(err) {
+                if (err) {
+                    console.error('Quagga initialization failed:', err);
+                    updateScannerStatus('Scanner failed to start', 'bg-red-500');
+                    
+                    // Hide camera overlay on error
+                    if (cameraOverlay) {
+                        cameraOverlay.classList.add('hidden');
+                    }
+                    
+                    let errorMsg = 'Unable to initialize barcode scanner. ';
+                    if (err.name === 'NotAllowedError') {
+                        errorMsg += 'Please allow camera permissions and try again.';
+                    } else if (err.name === 'NotFoundError') {
+                        errorMsg += 'No camera found on this device.';
+                    } else {
+                        errorMsg += 'Please check camera permissions or try manual entry.';
+                    }
+                    
+                    alert(errorMsg);
+                    if (startBtn) startBtn.disabled = false;
+                    return;
+                }
+                
+                console.log('Quagga initialized successfully');
+                
+                // Start QuaggaJS
+                Quagga.start();
+                scannerActive = true;
+                
+                // Wait a moment for video to start
+                setTimeout(() => {
+                    // Hide camera overlay when QuaggaJS starts
+                    if (cameraOverlay) {
+                        cameraOverlay.classList.add('hidden');
+                    }
+                    
+                    // Check if video is actually working
+                    if (video.videoWidth > 0 && video.videoHeight > 0) {
+                        console.log('QuaggaJS video working:', video.videoWidth, 'x', video.videoHeight);
+                        updateScannerStatus('Scanning with QuaggaJS...', 'bg-green-500');
+                    } else {
+                        console.log('QuaggaJS video not working, showing overlay');
+                        if (cameraOverlay) {
+                            cameraOverlay.classList.remove('hidden');
+                            cameraOverlay.querySelector('p').textContent = 'Camera not displaying - try refreshing';
+                        }
+                        updateScannerStatus('Camera issue - try refresh', 'bg-yellow-500');
+                    }
+                }, 2000);
+                
+                // Listen for barcode detection
+                Quagga.onDetected(function(result) {
+                    const barcode = result.codeResult.code;
+                    console.log('Barcode detected (Quagga):', barcode);
+                    
+                    // Show visual feedback
+                    showBarcodeDetectionFeedback();
+                    
+                    // Process the barcode
+                    processBarcode(barcode);
+                    
+                    // Stop scanning
+                    stopScanner();
+                });
+                
+                // Add error handling for QuaggaJS
+                Quagga.onProcessed(function(result) {
+                    if (result) {
+                        console.log('QuaggaJS processing frame...');
+                    }
+                });
+            });
+        } else {
+            console.log('No scanner available');
+            updateScannerStatus('No scanner available', 'bg-red-500');
+            alert('Barcode scanning is not supported in this browser. Please enter barcode manually or try a different browser.');
+            if (startBtn) startBtn.disabled = false;
+        }
+        
+    } catch (error) {
+        console.error('Error accessing camera:', error);
+        updateScannerStatus('Camera access failed', 'bg-red-500');
+        
+        let errorMessage = 'Unable to access camera. ';
+        if (error.name === 'NotAllowedError') {
+            errorMessage += 'Please allow camera permissions and try again.';
+        } else if (error.name === 'NotFoundError') {
+            errorMessage += 'No camera found on this device.';
+        } else if (error.name === 'NotSupportedError') {
+            errorMessage += 'Camera not supported in this browser.';
+        } else {
+            errorMessage += 'Please check camera permissions or try manual entry.';
+        }
+        
+        console.log('Camera error details:', error);
+        alert(errorMessage);
+        if (startBtn) startBtn.disabled = false;
+    }
+}
+
+// Capture a frame for manual barcode detection
+function captureFrame() {
+    const video = document.getElementById('scanner');
+    const canvas = document.getElementById('scannerCanvas');
+    
+    if (!scannerActive) {
+        alert('Scanner not active. Please start the scanner first.');
+        return;
+    }
+    
+    if (video.videoWidth === 0 || video.videoHeight === 0) {
+        alert('Camera not ready. Please wait for camera to initialize or try refreshing the page.');
+        return;
+    }
+    
+    console.log('Capturing frame from video:', video.videoWidth, 'x', video.videoHeight);
+    
+    const context = canvas.getContext('2d');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    context.drawImage(video, 0, 0);
+    
+    // Show canvas
+    canvas.classList.remove('hidden');
+    video.classList.add('hidden');
+    
+    // Try to detect barcode from captured frame
+    if (barcodeDetector) {
+        barcodeDetector.detect(canvas).then(barcodes => {
+            if (barcodes.length > 0) {
+                processBarcode(barcodes[0].rawValue);
+            } else {
+                alert('No barcode detected in captured frame. Try repositioning or manual entry.');
+            }
+        }).catch(err => {
+            console.error('Error detecting barcode:', err);
+            alert('Failed to detect barcode. Please try manual entry.');
+        });
+    } else if (typeof Quagga !== 'undefined') {
+        // Try QuaggaJS detection on captured frame
+        Quagga.decodeSingle({
+            decoder: {
+                readers: ["ean_reader", "ean_8_reader", "upc_reader", "code_128_reader", "code_39_reader"]
+            },
+            locate: true,
+            src: canvas.toDataURL()
+        }, function(result) {
+            if (result.codeResult) {
+                processBarcode(result.codeResult.code);
+            } else {
+                alert('No barcode detected in captured frame. Try repositioning or manual entry.');
+            }
+        });
+    } else {
+        alert('Barcode detection not available. Please use manual entry.');
+    }
+}
+
+// Stop the camera scanner
+function stopScanner() {
+    updateScannerStatus('Stopping scanner...', 'bg-yellow-500');
+    
+    if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        stream = null;
+    }
+    
+    if (typeof Quagga !== 'undefined' && scannerActive) {
+        Quagga.stop();
+    }
+    
+    const video = document.getElementById('scanner');
+    const canvas = document.getElementById('scannerCanvas');
+    const startBtn = document.getElementById('startScanBtn');
+    
+    video.srcObject = null;
+    video.classList.remove('hidden');
+    canvas.classList.add('hidden');
+    
+    if (startBtn) startBtn.disabled = false;
+    
+    scannerActive = false;
+    updateScannerStatus('Scanner stopped', 'bg-gray-500');
+    
+    // Reset visual feedback
+    resetScannerVisualFeedback();
+}
+
+// Detect barcodes from video stream
+async function detectBarcodes() {
+    if (!scannerActive || !barcodeDetector) return;
+    
+    const video = document.getElementById('scanner');
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    try {
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const barcodes = await barcodeDetector.detect(canvas);
+        
+        if (barcodes.length > 0) {
+            const barcode = barcodes[0];
+            console.log('Barcode detected:', barcode.rawValue);
+            
+            // Show visual feedback
+            showBarcodeDetectionFeedback();
+            
+            // Process the barcode
+            processBarcode(barcode.rawValue);
+            
+            // Stop scanning after successful detection
+            stopScanner();
+            return;
+        }
+    } catch (error) {
+        console.error('Error detecting barcodes:', error);
+    }
+    
+    // Continue scanning
+    if (scannerActive) {
+        requestAnimationFrame(detectBarcodes);
+    }
+}
+
+// Show visual feedback when barcode is detected
+function showBarcodeDetectionFeedback() {
+    const scannerFrame = document.getElementById('scannerFrame');
+    const scannerTarget = document.getElementById('scannerTarget');
+    const feedback = document.getElementById('barcodeDetectionFeedback');
+    
+    // Change frame color to green
+    scannerFrame.classList.remove('border-blue-500');
+    scannerFrame.classList.add('border-green-500');
+    
+    // Change target area color to green
+    scannerTarget.classList.remove('border-blue-500');
+    scannerTarget.classList.add('border-green-500');
+    
+    // Show detection feedback overlay
+    feedback.classList.remove('hidden');
+    
+    // Update scanner status
+    updateScannerStatus('Barcode detected! Processing...', 'bg-green-500');
+    
+    // Hide feedback after 3 seconds
+    setTimeout(() => {
+        feedback.classList.add('hidden');
+    }, 3000);
+}
+
+// Reset scanner visual feedback
+function resetScannerVisualFeedback() {
+    const scannerFrame = document.getElementById('scannerFrame');
+    const scannerTarget = document.getElementById('scannerTarget');
+    const feedback = document.getElementById('barcodeDetectionFeedback');
+    
+    // Reset frame color to blue
+    scannerFrame.classList.remove('border-green-500');
+    scannerFrame.classList.add('border-blue-500');
+    
+    // Reset target area color to blue
+    scannerTarget.classList.remove('border-green-500');
+    scannerTarget.classList.add('border-blue-500');
+    
+    // Hide feedback overlay
+    feedback.classList.add('hidden');
+}
+
+// Retry barcode detection
+function retryBarcodeDetection() {
+    console.log('Retrying barcode detection...');
+    
+    // Hide any existing messages
+    const autoInfo = document.getElementById('autoPopulatedInfo');
+    autoInfo.classList.add('hidden');
+    
+    // Try opening barcode scanner app again
+    openBarcodeScannerApp();
+}
+
+// Focus on barcode input for manual entry
+function focusBarcodeInput() {
+    const barcodeInput = document.getElementById('barcodeInput');
+    if (barcodeInput) {
+        barcodeInput.focus();
+        barcodeInput.select();
+    }
+}
+
+// Use manual entry instead
+function useManualEntry() {
+    console.log('Switching to manual entry...');
+    
+    // Hide any existing messages
+    const autoInfo = document.getElementById('autoPopulatedInfo');
+    autoInfo.classList.add('hidden');
+    
+    // Focus on the manual barcode input
+    const barcodeInput = document.getElementById('barcodeInput');
+    if (barcodeInput) {
+        barcodeInput.focus();
+        barcodeInput.select();
+    }
+    
+    // Show helpful message
+    autoInfo.classList.remove('hidden');
+    autoInfo.innerHTML = `
+        <div class="bg-blue-900/20 border border-blue-700 rounded-lg p-3">
+            <div class="flex items-center">
+                <i data-lucide="edit" class="h-5 w-5 text-blue-400 mr-2"></i>
+                <span class="text-blue-400 text-sm">Please enter the barcode manually in the input field below, or use the test barcode buttons.</span>
+            </div>
+        </div>
+    `;
+}
+
+// Process scanned barcode
+async function processBarcode(barcodeValue) {
+    // Show success message
+    const scanResult = document.getElementById('scanResult');
+    scanResult.classList.remove('hidden');
+    
+    // Set barcode input value
+    document.getElementById('barcodeInput').value = barcodeValue;
+    
+    // Lookup barcode data
+    await lookupBarcodeData(barcodeValue);
+    
+    // Hide success message after 3 seconds
+    setTimeout(() => {
+        scanResult.classList.add('hidden');
+    }, 3000);
+}
+
+// Look up product information by barcode
+async function lookupProductByBarcode(barcodeValue) {
+    try {
+        console.log('Looking up product for barcode:', barcodeValue);
+        
+        // First try to get from our database
+        const response = await fetch(`/api/barcode-lookup/${barcodeValue}/`);
+        const result = await response.json();
+        
+        if (result.success && result.product) {
+            console.log('Product found in database:', result.product);
+            return result.product;
+        }
+        
+        // If not in database, try external API
+        console.log('Product not in database, trying external API...');
+        const externalResponse = await fetch(`/api/external-barcode-lookup/${barcodeValue}/`);
+        const externalResult = await externalResponse.json();
+        
+        if (externalResult.success && externalResult.product) {
+            console.log('Product found via external API:', externalResult.product);
+            return externalResult.product;
+        }
+        
+        // If still no product, create a basic product entry
+        console.log('No product found, creating basic entry...');
+        return {
+            name: `Product ${barcodeValue}`,
+            type: 'Unknown',
+            manufacturer: 'Unknown',
+            model: barcodeValue,
+            specs: 'Specifications not available',
+            barcode: barcodeValue
+        };
+        
+    } catch (error) {
+        console.error('Error looking up product:', error);
+        
+        // Return basic product info if lookup fails
+        return {
+            name: `Product ${barcodeValue}`,
+            type: 'Unknown',
+            manufacturer: 'Unknown',
+            model: barcodeValue,
+            specs: 'Specifications not available',
+            barcode: barcodeValue
+        };
+    }
+}
+
+// Manual barcode lookup
+async function lookupBarcode() {
+    const barcodeInput = document.getElementById('barcodeInput');
+    const barcodeValue = barcodeInput.value.trim();
+    
+    if (!barcodeValue) {
+        alert('Please enter a barcode');
+        return;
+    }
+    
+    await lookupBarcodeData(barcodeValue);
+}
+
+// Test barcode function for quick testing
+function testBarcode(barcode) {
+    // Define comprehensive test data for different products
+    const testProducts = {
+        '1234567890123': {
+            name: 'Dell Latitude 5520',
+            type: 'Laptop',
+            manufacturer: 'Dell Technologies',
+            model: 'Latitude 5520',
+            serial: '1234567890123',
+            barcode: '1234567890123',
+            specs: '15.6" FHD, Intel i7-1165G7, 16GB RAM, 512GB SSD, Windows 11 Pro',
+            description: 'Business laptop with premium build quality and security features',
+            category: 'Computers'
+        },
+        '9876543210987': {
+            name: 'Apple Magic Keyboard',
+            type: 'Keyboard',
+            manufacturer: 'Apple Inc.',
+            model: 'A1644',
+            serial: '9876543210987',
+            barcode: '9876543210987',
+            specs: 'Wireless, Rechargeable, Multi-touch surface, Backlit keys',
+            description: 'Premium wireless keyboard with multi-touch surface',
+            category: 'Peripherals'
+        },
+        '4567891234567': {
+            name: 'Samsung 27" Monitor',
+            type: 'Monitor',
+            manufacturer: 'Samsung Electronics',
+            model: 'S27A800',
+            serial: '4567891234567',
+            barcode: '4567891234567',
+            specs: '27" 4K UHD, 3840x2160, 60Hz, HDMI/DisplayPort, HDR',
+            description: 'Ultra-high definition monitor with HDR support',
+            category: 'Displays'
+        }
+    };
+    
+    // Get product data for the barcode
+    const productData = testProducts[barcode];
+    
+    if (productData) {
+        // Populate form with comprehensive data
+        populateAssetFields(productData);
+        
+        // Show success message
+        const autoInfo = document.getElementById('autoPopulatedInfo');
+        autoInfo.classList.remove('hidden');
+        autoInfo.innerHTML = `
+            <div class="bg-green-900/20 border border-green-700 rounded-lg p-3">
+                <div class="flex items-start">
+                    <i data-lucide="check-circle" class="h-5 w-5 text-green-400 mr-2 mt-0.5"></i>
+                    <div class="flex-1">
+                        <div class="text-green-400 text-sm font-medium mb-1">Test Product Loaded</div>
+                        <div class="text-green-300 text-xs mb-2">Barcode: ${barcode}</div>
+                        <div class="bg-slate-800 rounded p-2 text-xs mb-2">
+                            <div class="grid grid-cols-2 gap-2">
+                                <div><span class="text-slate-400">Asset Name:</span> ${productData.name}</div>
+                                <div><span class="text-slate-400">Asset Type:</span> ${productData.type}</div>
+                                <div><span class="text-slate-400">Serial Number:</span> ${productData.serial}</div>
+                                <div><span class="text-slate-400">Model:</span> ${productData.model}</div>
+                                <div><span class="text-slate-400">Manufacturer:</span> ${productData.manufacturer}</div>
+                                <div><span class="text-slate-400">Purchase Date:</span> Today's date</div>
+                            </div>
+                        </div>
+                        <div class="text-green-300 text-xs">
+                            <i data-lucide="info" class="h-3 w-3 inline mr-1"></i>
+                            All form fields have been automatically filled in!
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    } else {
+        // Fallback to original lookup
+        document.getElementById('barcodeInput').value = barcode;
+        lookupBarcode();
+    }
+}
+
+// Test AI Recognize with sample product data
+function testAIRecognize() {
+    const sampleProductData = {
+        name: 'iPhone 15 Pro Max',
+        type: 'Smartphone',
+        manufacturer: 'Apple Inc.',
+        model: 'A2849',
+        serial: '1234567890123',
+        barcode: '1234567890123',
+        specs: '6.7" Super Retina XDR OLED, A17 Pro chip, 48MP camera, 256GB storage, Titanium design',
+        description: 'Latest iPhone with advanced camera system and powerful A17 Pro chip',
+        category: 'Mobile Devices'
+    };
+    
+    // Populate form with sample data
+    populateAssetFields(sampleProductData);
+    
+    // Show success message
+    const autoInfo = document.getElementById('autoPopulatedInfo');
+    autoInfo.classList.remove('hidden');
+    autoInfo.innerHTML = `
+        <div class="bg-green-900/20 border border-green-700 rounded-lg p-3">
+            <div class="flex items-start">
+                <i data-lucide="check-circle" class="h-5 w-5 text-green-400 mr-2 mt-0.5"></i>
+                <div class="flex-1">
+                    <div class="text-green-400 text-sm font-medium mb-1">AI Product Recognition Demo</div>
+                    <div class="text-green-300 text-xs mb-2">All form fields auto-populated successfully!</div>
+                    <div class="bg-slate-800 rounded p-2 text-xs mb-2">
+                        <div class="grid grid-cols-2 gap-2">
+                            <div><span class="text-slate-400">Asset Name:</span> ${sampleProductData.name}</div>
+                            <div><span class="text-slate-400">Asset Type:</span> ${sampleProductData.type}</div>
+                            <div><span class="text-slate-400">Serial Number:</span> ${sampleProductData.serial}</div>
+                            <div><span class="text-slate-400">Model:</span> ${sampleProductData.model}</div>
+                            <div><span class="text-slate-400">Manufacturer:</span> ${sampleProductData.manufacturer}</div>
+                            <div><span class="text-slate-400">Purchase Date:</span> Today's date</div>
+                        </div>
+                    </div>
+                    <div class="text-green-300 text-xs">
+                        <i data-lucide="info" class="h-3 w-3 inline mr-1"></i>
+                        All asset form fields have been automatically filled in!
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Debug camera function
+function debugCamera() {
+    const video = document.getElementById('scanner');
+    console.log('=== Camera Debug Info ===');
+    console.log('Video element:', video);
+    console.log('Video width:', video.videoWidth);
+    console.log('Video height:', video.videoHeight);
+    console.log('Video ready state:', video.readyState);
+    console.log('Video paused:', video.paused);
+    console.log('Video ended:', video.ended);
+    console.log('Video error:', video.error);
+    console.log('Scanner active:', scannerActive);
+    console.log('Stream:', stream);
+    console.log('BarcodeDetector:', barcodeDetector);
+    console.log('Quagga available:', typeof Quagga !== 'undefined');
+    
+    if (stream) {
+        console.log('Stream tracks:', stream.getTracks());
+        stream.getTracks().forEach(track => {
+            console.log('Track:', track.kind, track.readyState, track.enabled);
+        });
+    }
+    
+    // Try to refresh camera if it's not working
+    if (video.videoWidth === 0 || video.videoHeight === 0) {
+        console.log('Attempting to refresh camera...');
+        if (scannerActive) {
+            stopScanner();
+            setTimeout(() => {
+                startScanner();
+            }, 1000);
+        }
+    }
+    
+    alert(`Camera Debug Info:\nWidth: ${video.videoWidth}\nHeight: ${video.videoHeight}\nReady State: ${video.readyState}\nScanner Active: ${scannerActive}\nCheck console for more details.`);
+}
+
+// Refresh camera function
+function refreshCamera() {
+    console.log('Refreshing camera...');
+    if (scannerActive) {
+        stopScanner();
+        setTimeout(() => {
+            startScanner();
+        }, 1000);
+    } else {
+        startScanner();
+    }
+}
+
+// Try different camera configurations
+async function tryAlternativeCameraConfig() {
+    console.log('Trying alternative camera configuration...');
+    const video = document.getElementById('scanner');
+    
+    try {
+        // Try with different constraints
+        const alternativeStream = await navigator.mediaDevices.getUserMedia({
+            video: {
+                facingMode: 'user', // Try front camera instead
+                width: { min: 320, ideal: 640, max: 1280 },
+                height: { min: 240, ideal: 480, max: 720 }
+            },
+            audio: false
+        });
+        
+        // Stop current stream if exists
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+        }
+        
+        stream = alternativeStream;
+        video.srcObject = stream;
+        
+        // Force video to play
+        video.muted = true;
+        await video.play();
+        
+        console.log('Alternative camera config successful');
+        updateScannerStatus('Camera active (alternative config) - scanning...', 'bg-green-500');
+        
+        // Hide camera overlay
+        const cameraOverlay = document.getElementById('cameraStatusOverlay');
+        if (cameraOverlay) {
+            cameraOverlay.classList.add('hidden');
+        }
+        
+        return true;
+    } catch (error) {
+        console.error('Alternative camera config failed:', error);
+        return false;
+    }
+}
+
+// Skip camera and use test data
+function skipCameraAndUseTest() {
+    // Stop any active scanner
+    if (scannerActive) {
+        stopScanner();
+    }
+    
+    // Use the Dell Laptop test data
+    testBarcode('1234567890123');
+    
+    // Show success message
+    const scanResult = document.getElementById('scanResult');
+    scanResult.classList.remove('hidden');
+    scanResult.innerHTML = `
+        <div class="flex items-center">
+            <i data-lucide="check-circle" class="h-5 w-5 text-green-400 mr-2"></i>
+            <span class="text-green-400 text-sm">Test data loaded successfully!</span>
+        </div>
+    `;
+    
+    // Hide success message after 3 seconds
+    setTimeout(() => {
+        scanResult.classList.add('hidden');
+    }, 3000);
+}
+
+// AI Image Recognition: Take picture and fill in what AI sees
+// Open third-party barcode scanner app
+function openBarcodeScannerApp() {
+    // Check if we're on mobile
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    if (isMobile) {
+        // Try to open popular barcode scanner apps
+        const scannerApps = [
+            'zxing://scan/?ret=${barcode}&SCAN_FORMATS=ALL_FORMATS', // ZXing Scanner
+            'barcode://scan?callback=${barcode}', // Barcode Scanner
+            'qr://scan?callback=${barcode}', // QR & Barcode Scanner
+            'intent://scan/#Intent;scheme=zxing;package=com.google.zxing.client.android;end', // ZXing Intent
+        ];
+        
+        // Try to open the first available app
+        for (let app of scannerApps) {
+            try {
+                window.location.href = app;
+                break;
+            } catch (e) {
+                console.log('Failed to open app:', e);
+            }
+        }
+        
+        // Fallback: Show instructions
+        alert('Please install a barcode scanner app like "ZXing Scanner" or "Barcode Scanner" from your app store, then scan the barcode and copy the result.');
+        
+    } else {
+        // Desktop: Open web-based barcode scanner
+        const scannerUrl = 'https://zxing.org/w/decode.jspx';
+        window.open(scannerUrl, '_blank', 'width=800,height=600');
+        
+        // Show instructions for desktop
+        alert('A web-based barcode scanner will open. Scan your barcode and copy the result, then paste it in the barcode input field below.');
+    }
+}
+
+// Handle barcode data returned from third-party app
+function handleBarcodeResult(barcodeValue) {
+    console.log('Barcode received from app:', barcodeValue);
+    
+    // Update barcode input field
+    const barcodeInput = document.getElementById('barcodeInput');
+    if (barcodeInput) {
+        barcodeInput.value = barcodeValue;
+    }
+    
+    // Automatically lookup product data
+    lookupProductByBarcode(barcodeValue);
+}
+
+// Lookup product data from database
+async function lookupProductByBarcode(barcodeValue) {
+    const autoInfo = document.getElementById('autoPopulatedInfo');
+    autoInfo.classList.remove('hidden');
+    
+    try {
+        // Show loading status
+        autoInfo.innerHTML = `
+            <div class="flex items-center justify-center p-4">
+                <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+                <span class="ml-2 text-blue-400">Looking up product data...</span>
+            </div>
+        `;
+        
+        // Call your API to lookup product data
+        const response = await fetch(`/api/barcode-lookup/?barcode=${encodeURIComponent(barcodeValue)}`);
+        const result = await response.json();
+        
+        if (result.success) {
+            // Populate form with product data
+            populateAssetFields(result.data);
+            
+            // Show success message
+            autoInfo.innerHTML = `
+                <div class="bg-green-900/20 border border-green-700 rounded-lg p-3">
+                    <div class="flex items-start">
+                        <i data-lucide="check-circle" class="h-5 w-5 text-green-400 mr-2 mt-0.5"></i>
+                        <div class="flex-1">
+                            <div class="text-green-400 text-sm font-medium mb-1">Product Found!</div>
+                            <div class="text-green-300 text-xs mb-2">Barcode: ${barcodeValue}</div>
+                            <div class="bg-slate-800 rounded p-2 text-xs mb-2">
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div><span class="text-slate-400">Name:</span> ${result.data.name}</div>
+                                    <div><span class="text-slate-400">Type:</span> ${result.data.type}</div>
+                                    <div><span class="text-slate-400">Manufacturer:</span> ${result.data.manufacturer}</div>
+                                    <div><span class="text-slate-400">Model:</span> ${result.data.model}</div>
+                                </div>
+                            </div>
+                            <div class="text-green-300 text-xs">
+                                <i data-lucide="check" class="h-3 w-3 inline mr-1"></i>
+                                All fields filled automatically!
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else {
+            // Product not found in database
+            autoInfo.innerHTML = `
+                <div class="bg-yellow-900/20 border border-yellow-700 rounded-lg p-3">
+                    <div class="flex items-start">
+                        <i data-lucide="alert-triangle" class="h-5 w-5 text-yellow-400 mr-2 mt-0.5"></i>
+                        <div class="flex-1">
+                            <div class="text-yellow-400 text-sm font-medium mb-1">Barcode Scanned: ${barcodeValue}</div>
+                            <div class="text-yellow-300 text-xs mb-2">Product not found in database. Please enter details manually.</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Product lookup error:', error);
+        autoInfo.innerHTML = `
+            <div class="bg-red-900/20 border border-red-700 rounded-lg p-3">
+                <div class="flex items-center">
+                    <i data-lucide="alert-circle" class="h-5 w-5 text-red-400 mr-2"></i>
+                    <span class="text-red-400 text-sm">Failed to lookup product data. Please try manual entry.</span>
+                </div>
+            </div>
+        `;
+    }
+}
+
+// Show AI recognition results
+function showAIRecognitionInfo(data, message, confidence) {
+    const autoInfo = document.getElementById('autoPopulatedInfo');
+    autoInfo.innerHTML = `
+        <div class="bg-purple-900/20 border border-purple-700 rounded-lg p-3">
+            <div class="flex items-start">
+                <i data-lucide="brain" class="h-5 w-5 text-purple-400 mr-2 mt-0.5"></i>
+                <div class="flex-1">
+                    <div class="text-purple-400 text-sm font-medium mb-1">AI Product Recognition</div>
+                    <div class="text-purple-300 text-xs mb-2">${message}</div>
+                    <div class="bg-slate-800 rounded p-2 text-xs mb-2">
+                        <div class="grid grid-cols-2 gap-2">
+                            <div><span class="text-slate-400">Product:</span> ${data.name}</div>
+                            <div><span class="text-slate-400">Type:</span> ${data.type}</div>
+                            <div><span class="text-slate-400">Manufacturer:</span> ${data.manufacturer}</div>
+                            <div><span class="text-slate-400">Model:</span> ${data.model}</div>
+                            <div><span class="text-slate-400">Specs:</span> ${data.specs}</div>
+                            <div><span class="text-slate-400">Confidence:</span> <span class="text-green-400">${confidence}%</span></div>
+                        </div>
+                    </div>
+                    <div class="text-purple-300 text-xs">
+                        <i data-lucide="info" class="h-3 w-3 inline mr-1"></i>
+                        AI analyzed product image and detected features automatically
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    autoInfo.classList.remove('hidden');
+}
+
+// Lookup barcode data from database or API
+async function lookupBarcodeData(barcodeValue) {
+    try {
+        // Show loading state
+        const autoInfo = document.getElementById('autoPopulatedInfo');
+        autoInfo.classList.remove('hidden');
+        autoInfo.innerHTML = `
+            <div class="flex items-center">
+                <i data-lucide="loader-2" class="h-4 w-4 text-blue-400 mr-2 animate-spin"></i>
+                <span class="text-blue-400 text-sm">Looking up barcode data...</span>
+            </div>
+        `;
+        
+        // Call the real API endpoint
+        const response = await fetch(`/api/barcode-lookup/?barcode=${encodeURIComponent(barcodeValue)}`);
+        const result = await response.json();
+        
+        if (result.success) {
+            // Populate form fields
+            populateAssetFields(result.data);
+            
+            // Show different info based on source
+            if (result.source === 'smart_prediction') {
+                showSmartPredictionInfo(result.data, result.message);
+            } else {
+                showAutoPopulatedInfo(result.data);
+            }
+        } else {
+            // Show error message
+            autoInfo.innerHTML = `
+                <div class="flex items-center mb-2">
+                    <i data-lucide="alert-circle" class="h-4 w-4 text-yellow-400 mr-2"></i>
+                    <span class="text-yellow-400 text-sm font-medium">Barcode not found</span>
+                </div>
+                <div class="text-xs text-slate-300">
+                    ${result.message || 'This barcode is not recognized. Please enter asset details manually.'}
+                </div>
+            `;
+        }
+        
+    } catch (error) {
+        console.error('Error looking up barcode:', error);
+        
+        // Show error message
+        const autoInfo = document.getElementById('autoPopulatedInfo');
+        autoInfo.innerHTML = `
+            <div class="flex items-center mb-2">
+                <i data-lucide="alert-triangle" class="h-4 w-4 text-red-400 mr-2"></i>
+                <span class="text-red-400 text-sm font-medium">Error</span>
+            </div>
+            <div class="text-xs text-slate-300">
+                Unable to connect to barcode database. Please enter asset details manually.
+            </div>
+        `;
+    }
+}
+
+// Populate asset form fields
+function populateAssetFields(data) {
+    if (!data) return;
+    
+    console.log('Populating asset fields with data:', data);
+    
+    // Fill in all the main asset form fields
+    const assetNameField = document.getElementById('assetName');
+    if (assetNameField) assetNameField.value = data.name || '';
+    
+    const assetTypeField = document.getElementById('assetType');
+    if (assetTypeField) assetTypeField.value = data.type || '';
+    
+    const serialNumberField = document.getElementById('serialNumber');
+    if (serialNumberField) serialNumberField.value = data.serial || data.barcode || '';
+    
+    const assetModelField = document.getElementById('assetModel');
+    if (assetModelField) assetModelField.value = data.model || '';
+    
+    const manufacturerField = document.getElementById('manufacturer');
+    if (manufacturerField) manufacturerField.value = data.manufacturer || '';
+    
+    // Set today's date as purchase date
+    const today = new Date().toISOString().split('T')[0];
+    const purchaseDateField = document.getElementById('purchaseDate');
+    if (purchaseDateField) purchaseDateField.value = today;
+    
+    // Also update barcode input field if not already set
+    const barcodeInput = document.getElementById('barcodeInput');
+    if (barcodeInput && !barcodeInput.value) {
+        barcodeInput.value = data.barcode || data.serial || '';
+    }
+    
+    // Update any additional fields that might exist
+    const specsField = document.getElementById('specifications');
+    if (specsField) specsField.value = data.specs || '';
+    
+    const descriptionField = document.getElementById('description');
+    if (descriptionField) descriptionField.value = data.description || data.specs || '';
+    
+    const categoryField = document.getElementById('category');
+    if (categoryField) categoryField.value = data.category || data.type || '';
+    
+    console.log('Asset fields populated successfully');
+}
+
+// Show auto-populated information
+function showAutoPopulatedInfo(data) {
+    if (!data) return;
+    
+    const autoInfo = document.getElementById('autoPopulatedInfo');
+    autoInfo.innerHTML = `
+        <div class="flex items-center mb-2">
+            <i data-lucide="info" class="h-4 w-4 text-blue-400 mr-2"></i>
+            <span class="text-blue-400 text-sm font-medium">Auto-populated from barcode</span>
+        </div>
+        <div class="grid grid-cols-2 gap-2 text-xs text-slate-300">
+            <div><span class="font-medium">Product:</span> <span id="autoProductName">${data.name}</span></div>
+            <div><span class="font-medium">Category:</span> <span id="autoCategory">${data.category}</span></div>
+            <div><span class="font-medium">Specs:</span> <span id="autoSpecs">${data.specs}</span></div>
+            <div><span class="font-medium">Warranty:</span> <span id="autoWarranty">${data.warranty}</span></div>
+        </div>
+    `;
+    autoInfo.classList.remove('hidden');
+}
+
+// Show smart prediction info for new products
+function showSmartPredictionInfo(data, message) {
+    const autoInfo = document.getElementById('autoPopulatedInfo');
+    autoInfo.innerHTML = `
+        <div class="bg-yellow-900/20 border border-yellow-700 rounded-lg p-3">
+            <div class="flex items-start">
+                <i data-lucide="lightbulb" class="h-5 w-5 text-yellow-400 mr-2 mt-0.5"></i>
+                <div class="flex-1">
+                    <div class="text-yellow-400 text-sm font-medium mb-1">Smart Prediction Applied</div>
+                    <div class="text-yellow-300 text-xs mb-2">${message}</div>
+                    <div class="bg-slate-800 rounded p-2 text-xs">
+                        <div class="grid grid-cols-2 gap-2">
+                            <div><span class="text-slate-400">Name:</span> ${data.name}</div>
+                            <div><span class="text-slate-400">Type:</span> ${data.type}</div>
+                            <div><span class="text-slate-400">Manufacturer:</span> ${data.manufacturer}</div>
+                            <div><span class="text-slate-400">Model:</span> ${data.model}</div>
+                        </div>
+                    </div>
+                    <div class="text-yellow-300 text-xs mt-2">
+                        <i data-lucide="info" class="h-3 w-3 inline mr-1"></i>
+                        Please verify and update details as needed
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    autoInfo.classList.remove('hidden');
+}
+
+// Modal functions
+function openAddAssetModal() {
+    document.getElementById('addAssetModal').classList.remove('hidden');
+    // Reset form
+    document.getElementById('addAssetModal').querySelector('form').reset();
+    document.getElementById('scanResult').classList.add('hidden');
+    document.getElementById('autoPopulatedInfo').classList.add('hidden');
+    document.getElementById('scannerContainer').classList.add('hidden');
+    document.getElementById('scannerButtonText').textContent = 'Scan Barcode';
+}
+
+function closeAddAssetModal() {
+    document.getElementById('addAssetModal').classList.add('hidden');
+    stopScanner();
+}
+
+// Initialize when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize barcode scanner
+    initializeBarcodeScanner();
+    
+    // Add keyboard shortcut for barcode input
+    document.getElementById('barcodeInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            lookupBarcode();
+        }
+    });
+});
+
+// Existing functions...
+function editAsset(assetId) {
+    window.location.href = `/assets/${assetId}/edit/`;
+}
+
+function viewAsset(assetId) {
+    window.location.href = `/assets/${assetId}/`;
+}
+
+function deleteAsset(assetId) {
+    // Check if user has permission to delete
+    const deleteButton = event.target.closest('button');
+    if (deleteButton && deleteButton.classList.contains('cursor-not-allowed')) {
+        alert('Access denied. You do not have permission to delete this asset.');
+        return;
+    }
+    
+    if (confirm('Are you sure you want to delete this asset?')) {
+        window.location.href = `/assets/${assetId}/delete/`;
+    }
+}
+
+
+
+// Animate donut charts on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Animate donut charts
+    const circles = document.querySelectorAll('circle');
+    circles.forEach((circle, index) => {
+        setTimeout(() => {
+            circle.style.transition = 'stroke-dasharray 1s ease-in-out';
+            circle.style.strokeDasharray = circle.getAttribute('stroke-dasharray');
+        }, index * 200);
+    });
+
+    // Add hover effects to analytics boxes
+    const analyticsBoxes = document.querySelectorAll('.bg-slate-800.rounded-xl');
+    analyticsBoxes.forEach(box => {
+        box.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-2px)';
+            this.style.boxShadow = '0 10px 25px rgba(0, 0, 0, 0.3)';
+        });
+        
+        box.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+            this.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
+        });
+    });
+
+    // Add click effects to donut chart legends
+    const legendItems = document.querySelectorAll('.space-y-2 .flex');
+    legendItems.forEach(item => {
+        item.addEventListener('click', function() {
+            // Add a subtle highlight effect
+            this.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
+            setTimeout(() => {
+                this.style.backgroundColor = 'transparent';
+            }, 300);
+        });
+    });
+});
+
+// Close modal when clicking outside
+document.getElementById('addAssetModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeAddAssetModal();
+    }
+});
+
+// Add smooth scrolling for better UX
+document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+            target.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }
+    });
+});
+
+// Health Info Modal Functions
+function showHealthInfo() {
+    const modal = document.getElementById('healthInfoModal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+function closeHealthInfo() {
+    const modal = document.getElementById('healthInfoModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+}
+
+// Asset-specific health details
+function showAssetHealthDetails(assetName, healthScore, purchaseDate, assetType) {
+    let healthStatus, healthColor, recommendation;
+    
+    if (healthScore >= 80) {
+        healthStatus = 'Excellent';
+        healthColor = 'text-green-400';
+        recommendation = 'Asset is in excellent condition. Continue regular maintenance.';
+    } else if (healthScore >= 60) {
+        healthStatus = 'Good';
+        healthColor = 'text-yellow-400';
+        recommendation = 'Asset is in good condition. Monitor for any issues.';
+    } else {
+        healthStatus = 'Needs Attention';
+        healthColor = 'text-red-400';
+        recommendation = 'Asset may need maintenance or replacement soon.';
+    }
+    
+    const modal = document.getElementById('healthInfoModal');
+    const modalContent = modal.querySelector('.bg-slate-800');
+    
+    modalContent.innerHTML = `
+        <div class="px-6 py-4 border-b border-slate-700 flex items-center justify-between">
+            <h3 class="text-lg font-semibold text-white">Asset Health Details</h3>
+            <button onclick="closeHealthInfo()" class="text-slate-400 hover:text-white">
+                <i data-lucide="x" class="h-5 w-5"></i>
+            </button>
+        </div>
+        <div class="px-6 py-6">
+            <div class="space-y-4">
+                <div class="text-center">
+                    <div class="text-3xl font-bold ${healthColor} mb-2">${healthScore}%</div>
+                    <div class="text-lg text-white font-medium mb-1">${assetName}</div>
+                    <div class="text-slate-400 text-sm">${assetType}</div>
+                </div>
+                
+                <div class="bg-slate-700/50 rounded-lg p-4">
+                    <div class="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                            <div class="text-slate-400">Health Status</div>
+                            <div class="text-white font-medium">${healthStatus}</div>
+                        </div>
+                        <div>
+                            <div class="text-slate-400">Purchase Date</div>
+                            <div class="text-white font-medium">${purchaseDate}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="p-3 bg-blue-900/20 border border-blue-700 rounded-lg">
+                    <div class="flex items-start">
+                        <i data-lucide="info" class="h-4 w-4 text-blue-400 mr-2 mt-0.5"></i>
+                        <div class="text-sm text-blue-300">
+                            <div class="font-medium mb-1">Recommendation:</div>
+                            <div>${recommendation}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="px-6 py-4 border-t border-slate-700 flex justify-end">
+            <button onclick="closeHealthInfo()" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                Close
+            </button>
+        </div>
+    `;
+    
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+// Close health modal when clicking outside
+document.getElementById('healthInfoModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeHealthInfo();
+    }
+});
+
+// Asset Type Combobox functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const assetTypeInput = document.getElementById('assetType');
+    const assetTypeToggle = document.getElementById('assetType_toggle');
+    const assetTypeDropdown = document.getElementById('assetType_dropdown');
+    const assetTypeOptions = document.querySelectorAll('.asset-type-option');
+    
+    if (assetTypeInput && assetTypeToggle && assetTypeDropdown) {
+        // Toggle dropdown
+        assetTypeToggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            toggleDropdown();
+        });
+        
+        // Show dropdown on input focus
+        assetTypeInput.addEventListener('focus', function() {
+            showDropdown();
+        });
+        
+        // Handle option selection
+        assetTypeOptions.forEach(option => {
+            option.addEventListener('click', function() {
+                const value = this.getAttribute('data-value');
+                const text = this.textContent;
+                assetTypeInput.value = text;
+                hideDropdown();
+            });
+        });
+        
+        // Filter options based on input
+        assetTypeInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            filterOptions(searchTerm);
+        });
+        
+        // Handle keyboard navigation
+        assetTypeInput.addEventListener('keydown', function(e) {
+            const visibleOptions = Array.from(assetTypeOptions).filter(opt => !opt.classList.contains('hidden'));
+            const currentIndex = visibleOptions.findIndex(opt => opt.classList.contains('bg-slate-600'));
+            
+            switch(e.key) {
+                case 'ArrowDown':
+                    e.preventDefault();
+                    navigateOptions(visibleOptions, currentIndex, 1);
+                    break;
+                case 'ArrowUp':
+                    e.preventDefault();
+                    navigateOptions(visibleOptions, currentIndex, -1);
+                    break;
+                case 'Enter':
+                    e.preventDefault();
+                    if (visibleOptions.length > 0) {
+                        const selectedOption = visibleOptions.find(opt => opt.classList.contains('bg-slate-600')) || visibleOptions[0];
+                        const value = selectedOption.getAttribute('data-value');
+                        const text = selectedOption.textContent;
+                        assetTypeInput.value = text;
+                        hideDropdown();
+                    }
+                    break;
+                case 'Escape':
+                    hideDropdown();
+                    break;
+            }
+        });
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!assetTypeInput.contains(e.target) && !assetTypeDropdown.contains(e.target)) {
+                hideDropdown();
+            }
+        });
+        
+        function toggleDropdown() {
+            if (assetTypeDropdown.classList.contains('hidden')) {
+                showDropdown();
+            } else {
+                hideDropdown();
+            }
+        }
+        
+        function showDropdown() {
+            assetTypeDropdown.classList.remove('hidden');
+            assetTypeToggle.querySelector('i').setAttribute('data-lucide', 'chevron-up');
+            lucide.createIcons();
+            filterOptions(assetTypeInput.value.toLowerCase());
+        }
+        
+        function hideDropdown() {
+            assetTypeDropdown.classList.add('hidden');
+            assetTypeToggle.querySelector('i').setAttribute('data-lucide', 'chevron-down');
+            lucide.createIcons();
+            // Clear any highlighted options
+            assetTypeOptions.forEach(opt => opt.classList.remove('bg-slate-600'));
+        }
+        
+        function filterOptions(searchTerm) {
+            assetTypeOptions.forEach(option => {
+                const text = option.textContent.toLowerCase();
+                if (text.includes(searchTerm)) {
+                    option.classList.remove('hidden');
+                } else {
+                    option.classList.add('hidden');
+                }
+            });
+            
+            // Show all options if search is empty
+            if (!searchTerm) {
+                assetTypeOptions.forEach(option => option.classList.remove('hidden'));
+            }
+        }
+        
+        function navigateOptions(options, currentIndex, direction) {
+            // Clear current selection
+            options.forEach(opt => opt.classList.remove('bg-slate-600'));
+            
+            // Calculate new index
+            let newIndex = currentIndex + direction;
+            if (newIndex < 0) newIndex = options.length - 1;
+            if (newIndex >= options.length) newIndex = 0;
+            
+            // Highlight new option
+            if (options[newIndex]) {
+                options[newIndex].classList.add('bg-slate-600');
+                options[newIndex].scrollIntoView({ block: 'nearest' });
+            }
+        }
+    }
+});
+
+// Handle row clicks for asset table
+function handleRowClick(event, assetId) {
+    // Don't trigger if clicking on buttons or interactive elements
+    if (event.target.closest('button') || event.target.closest('a')) {
+        return;
+    }
+    
+    // Navigate to asset detail page
+    window.location.href = `/assets/${assetId}/`;
+}
+
+// Infinite Scroll Implementation
+let currentPage = {{ assets.number }};
+let totalPages = {{ assets.paginator.num_pages }};
+let isLoading = false;
+
+// Infinite Scroll Functionality
+function loadMoreAssets() {
+    if (isLoading || currentPage >= totalPages) {
+        return;
+    }
+    
+    isLoading = true;
+    const loadingIndicator = document.getElementById('loading-indicator');
+    const endOfResults = document.getElementById('end-of-results');
+    const loadMoreButton = document.getElementById('load-more-button');
+    
+    loadingIndicator.classList.remove('hidden');
+    if (loadMoreButton) {
+        loadMoreButton.classList.add('hidden');
+    }
+    
+    // Build URL with current filters
+    const url = new URL(window.location);
+    url.searchParams.set('page', currentPage + 1);
+    
+    fetch(url.toString())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.text();
+        })
+        .then(html => {
+            // Parse the response to extract the table body
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const newRows = doc.querySelectorAll('tbody tr');
+            
+            console.log(`Loading page ${currentPage + 1}, found ${newRows.length} new rows`);
+            
+            if (newRows.length > 0) {
+                // Append new rows to the existing table
+                const tbody = document.querySelector('tbody');
+                if (tbody) {
+                    newRows.forEach(row => {
+                        tbody.appendChild(row);
+                    });
+                }
+                
+                currentPage++;
+                
+                // Check if we've reached the end
+                if (currentPage >= totalPages) {
+                    endOfResults.classList.remove('hidden');
+                    console.log('Reached end of results');
+                }
+            } else {
+                // No more results
+                endOfResults.classList.remove('hidden');
+                console.log('No more results found');
+            }
+        })
+        .catch(error => {
+            console.error('Error loading more assets:', error);
+            // Show error message to user
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'px-6 py-4 border-t border-slate-700 text-center text-red-400';
+            errorDiv.innerHTML = 'Error loading more assets. Please try again.';
+            document.querySelector('.bg-slate-800').appendChild(errorDiv);
+        })
+        .finally(() => {
+            isLoading = false;
+            loadingIndicator.classList.add('hidden');
+            
+            // Show load more button again if there are more pages
+            if (currentPage < totalPages) {
+                const loadMoreButton = document.getElementById('load-more-button');
+                if (loadMoreButton) {
+                    loadMoreButton.classList.remove('hidden');
+                }
+            }
+        });
+}
+
+// Intersection Observer for infinite scroll
+const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting && !isLoading && currentPage < totalPages) {
+            console.log('Triggering loadMoreAssets from intersection observer');
+            loadMoreAssets();
+        }
+    });
+}, {
+    rootMargin: '200px'
+});
+
+// Initialize infinite scroll
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Initializing infinite scroll');
+    console.log(`Current page: ${currentPage}, Total pages: ${totalPages}`);
+    
+    // Create a sentinel element at the bottom of the table for intersection observation
+    const table = document.querySelector('table');
+    if (table) {
+        const sentinel = document.createElement('div');
+        sentinel.id = 'scroll-sentinel';
+        sentinel.style.height = '1px';
+        sentinel.style.width = '100%';
+        table.parentNode.appendChild(sentinel);
+        
+        observer.observe(sentinel);
+        console.log('Sentinel element created and observed');
+    }
+    
+    // Show load more button as fallback if not on last page
+    if (currentPage < totalPages) {
+        document.getElementById('load-more-button').classList.remove('hidden');
+        console.log('Showing load more button as fallback');
+    }
+    
+    // Show end of results if we're already at the last page
+    if (currentPage >= totalPages) {
+        document.getElementById('end-of-results').classList.remove('hidden');
+        console.log('Already at last page, showing end of results');
+    }
+});
+</script>
+{% endblock %}
+

@@ -1,0 +1,529 @@
+{% extends 'base.html' %}
+{% load employee_filters %}
+
+{% block title %}Your Profile | AssetTrack{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+<div class="w-full px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-white">Your Profile</h1>
+        <p class="text-slate-400 mt-2">Manage your account settings and view your activity</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Profile Information -->
+        <div class="lg:col-span-1">
+            <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700 p-6">
+                <div class="flex items-center space-x-4 mb-6">
+                    <div class="flex-shrink-0 h-20 w-20">
+                        <img class="h-20 w-20 rounded-full cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all" src="{{ user|safe_user_avatar_url }}" alt="{{ user.get_full_name|default:user.username }}" onclick="openAvatarModal(this.src, '{{ user.get_full_name|default:user.username }}', '{{ user.email }}')">
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-bold text-white">{{ user.get_full_name|default:user.username }}</h2>
+                        <p class="text-slate-400">{{ user.email }}</p>
+                        {% if employee %}
+                            <p class="text-sm text-slate-500">{{ employee.department }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-1">Username</label>
+                        <p class="text-white">{{ user.username }}</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-1">Email</label>
+                        <p class="text-white">{{ user.email }}</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-1">Date Joined</label>
+                        <p class="text-white">{{ user.date_joined|date:"M d, Y" }}</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-1">Last Login</label>
+                        <p class="text-white">{{ user.last_login|date:"M d, Y H:i"|default:"Never" }}</p>
+                    </div>
+                    {% if employee %}
+                        <div>
+                            <label class="block text-sm font-medium text-slate-400 mb-1">Employee ID</label>
+                            <p class="text-white">{{ employee.id }}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-400 mb-1">Position</label>
+                            <p class="text-white">{{ employee.position|default:"Not specified" }}</p>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="mt-6 pt-6 border-t border-slate-700 space-y-3">
+                    <button id="editProfileBtn" class="w-full inline-flex items-center justify-center px-4 py-2 border border-slate-600 text-sm font-medium rounded-md text-slate-300 bg-slate-700 hover:bg-slate-600 transition-colors">
+                        <i data-lucide="edit" class="mr-2 h-4 w-4"></i>
+                        Edit Profile
+                    </button>
+                    <button id="changePasswordBtn" class="w-full inline-flex items-center justify-center px-4 py-2 border border-slate-600 text-sm font-medium rounded-md text-slate-300 bg-slate-700 hover:bg-slate-600 transition-colors">
+                        <i data-lucide="key" class="mr-2 h-4 w-4"></i>
+                        Change Password
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Statistics Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700 p-6">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <i data-lucide="box" class="h-8 w-8 text-blue-400"></i>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-slate-400">Assigned Assets</p>
+                            <p class="text-2xl font-bold text-white">{{ assigned_assets.count }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700 p-6">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <i data-lucide="file-text" class="h-8 w-8 text-green-400"></i>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-slate-400">Handovers Created</p>
+                            <p class="text-2xl font-bold text-white">{{ handovers_created.count }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700 p-6">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <i data-lucide="activity" class="h-8 w-8 text-purple-400"></i>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-slate-400">Recent Activity</p>
+                            <p class="text-2xl font-bold text-white">{{ recent_activity|length }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Assigned Assets -->
+            {% if assigned_assets %}
+            <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700">
+                <div class="px-6 py-4 border-b border-slate-700">
+                    <h3 class="text-lg font-medium text-white">Your Assigned Assets</h3>
+                </div>
+                <div class="p-6">
+                    <div class="space-y-4">
+                        {% for asset in assigned_assets %}
+                        <div class="flex items-center justify-between p-4 bg-slate-700 rounded-lg">
+                            <div class="flex items-center space-x-4">
+                                <div class="flex-shrink-0">
+                                    <i data-lucide="box" class="h-6 w-6 text-blue-400"></i>
+                                </div>
+                                <div>
+                                    <p class="text-white font-medium">{{ asset.name }}</p>
+                                    <p class="text-sm text-slate-400">{{ asset.serial_number }} • {{ asset.get_asset_type_display }}</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="px-2 py-1 text-xs rounded-full bg-green-900/30 text-green-400">{{ asset.get_status_display }}</span>
+                                <a href="{% url 'assets:assets_detail' asset.id %}" class="text-blue-400 hover:text-blue-300">
+                                    <i data-lucide="external-link" class="h-4 w-4"></i>
+                                </a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Recent Activity -->
+            <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700">
+                <div class="px-6 py-4 border-b border-slate-700">
+                    <h3 class="text-lg font-medium text-white">Recent Activity</h3>
+                </div>
+                <div class="p-6">
+                    <div class="space-y-4">
+                        {% for activity in recent_activity %}
+                        <div class="flex items-start space-x-4">
+                            <div class="flex-shrink-0">
+                                <div class="h-2 w-2 bg-blue-400 rounded-full mt-2"></div>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm text-white">{{ activity.action }}</p>
+                                <p class="text-sm text-slate-400">{{ activity.details }}</p>
+                                <p class="text-xs text-slate-500 mt-1">{{ activity.timestamp }}</p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Account Settings -->
+            <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700">
+                <div class="px-6 py-4 border-b border-slate-700">
+                    <h3 class="text-lg font-medium text-white">Account Settings</h3>
+                </div>
+                <div class="p-6">
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-white font-medium">Email Notifications</p>
+                                <p class="text-sm text-slate-400">Receive notifications about asset assignments and handovers</p>
+                            </div>
+                            <button id="emailNotificationsToggle" class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 bg-blue-600" role="switch" aria-checked="true">
+                                <span class="translate-x-5 pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
+                            </button>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-white font-medium">Two-Factor Authentication</p>
+                                <p class="text-sm text-slate-400">Add an extra layer of security to your account</p>
+                            </div>
+                            <button id="twoFactorToggle" class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 bg-slate-600" role="switch" aria-checked="false">
+                                <span class="translate-x-0 pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Lucide icons
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+
+    // Edit Profile Button
+    const editProfileBtn = document.getElementById('editProfileBtn');
+    if (editProfileBtn) {
+        editProfileBtn.addEventListener('click', function() {
+            showEditProfileModal();
+        });
+    }
+
+    // Change Password Button
+    const changePasswordBtn = document.getElementById('changePasswordBtn');
+    if (changePasswordBtn) {
+        changePasswordBtn.addEventListener('click', function() {
+            showChangePasswordModal();
+        });
+    }
+
+    // Edit Profile Modal
+    function showEditProfileModal() {
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+        modal.innerHTML = `
+            <div class="bg-slate-800 rounded-lg p-6 w-full max-w-md mx-4">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-medium text-white">Edit Profile</h3>
+                    <button class="text-slate-400 hover:text-white" onclick="this.closest('.fixed').remove()">
+                        <i data-lucide="x" class="h-5 w-5"></i>
+                    </button>
+                </div>
+                <form class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-1">Full Name</label>
+                        <input type="text" value="${document.querySelector('h2').textContent}" 
+                               class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-1">Email</label>
+                        <input type="email" value="${document.querySelector('p.text-slate-400').textContent}" 
+                               class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-1">Phone Number</label>
+                        <input type="tel" placeholder="Enter phone number" 
+                               class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div class="flex space-x-3 pt-4">
+                        <button type="button" onclick="this.closest('.fixed').remove()" 
+                                class="flex-1 px-4 py-2 border border-slate-600 text-slate-300 rounded-md hover:bg-slate-700 transition-colors">
+                            Cancel
+                        </button>
+                        <button type="submit" 
+                                class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+                            Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // Handle form submission
+        const form = modal.querySelector('form');
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            showNotification('Profile updated successfully!', 'success');
+            modal.remove();
+        });
+        
+        // Initialize icons in modal
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    }
+
+    // Change Password Modal
+    function showChangePasswordModal() {
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+        modal.innerHTML = `
+            <div class="bg-slate-800 rounded-lg p-6 w-full max-w-md mx-4">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-medium text-white">Change Password</h3>
+                    <button class="text-slate-400 hover:text-white" onclick="this.closest('.fixed').remove()">
+                        <i data-lucide="x" class="h-5 w-5"></i>
+                    </button>
+                </div>
+                <form id="changePasswordForm" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-1">Current Password</label>
+                        <input type="password" name="old_password" id="old_password" required
+                               class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                               placeholder="Enter your current password">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-1">New Password</label>
+                        <input type="password" name="new_password1" id="new_password1" required
+                               class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                               placeholder="Enter new password">
+                        <div class="mt-1 text-xs text-slate-500">
+                            <ul class="list-disc list-inside space-y-1">
+                                <li>At least 8 characters long</li>
+                                <li>Contains letters and numbers</li>
+                                <li>Not too similar to your username</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-1">Confirm New Password</label>
+                        <input type="password" name="new_password2" id="new_password2" required
+                               class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                               placeholder="Confirm new password">
+                    </div>
+                    <div id="passwordError" class="hidden text-red-400 text-sm"></div>
+                    <div class="flex space-x-3 pt-4">
+                        <button type="button" onclick="this.closest('.fixed').remove()" 
+                                class="flex-1 px-4 py-2 border border-slate-600 text-slate-300 rounded-md hover:bg-slate-700 transition-colors">
+                            Cancel
+                        </button>
+                        <button type="submit" 
+                                class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+                            Change Password
+                        </button>
+                    </div>
+                </form>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // Handle form submission
+        const form = modal.querySelector('#changePasswordForm');
+        const errorDiv = modal.querySelector('#passwordError');
+        
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const oldPassword = form.querySelector('#old_password').value;
+            const newPassword1 = form.querySelector('#new_password1').value;
+            const newPassword2 = form.querySelector('#new_password2').value;
+            
+            // Basic validation
+            if (newPassword1 !== newPassword2) {
+                errorDiv.textContent = 'New passwords do not match.';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+            
+            if (newPassword1.length < 8) {
+                errorDiv.textContent = 'New password must be at least 8 characters long.';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+            
+            if (oldPassword === newPassword1) {
+                errorDiv.textContent = 'New password must be different from current password.';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+            
+            // Submit the form
+            const formData = new FormData();
+            formData.append('old_password', oldPassword);
+            formData.append('new_password1', newPassword1);
+            formData.append('new_password2', newPassword2);
+            formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+            
+            fetch('{% url "assets:change_password" %}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification('Password changed successfully!', 'success');
+                    modal.remove();
+                } else {
+                    errorDiv.textContent = data.error || 'An error occurred while changing password.';
+                    errorDiv.classList.remove('hidden');
+                }
+            })
+            .catch(error => {
+                errorDiv.textContent = 'An error occurred while changing password.';
+                errorDiv.classList.remove('hidden');
+            });
+        });
+        
+        // Initialize icons in modal
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    }
+
+    // Toggle Switch Functionality
+    function setupToggle(toggleId, handler) {
+        const toggle = document.getElementById(toggleId);
+        if (toggle) {
+            toggle.addEventListener('click', function() {
+                const isChecked = this.getAttribute('aria-checked') === 'true';
+                const newState = !isChecked;
+                
+                // Update the toggle state
+                this.setAttribute('aria-checked', newState.toString());
+                
+                // Update visual state
+                const span = this.querySelector('span');
+                if (newState) {
+                    this.classList.remove('bg-slate-600');
+                    this.classList.add('bg-blue-600');
+                    span.classList.remove('translate-x-0');
+                    span.classList.add('translate-x-5');
+                } else {
+                    this.classList.remove('bg-blue-600');
+                    this.classList.add('bg-slate-600');
+                    span.classList.remove('translate-x-5');
+                    span.classList.add('translate-x-0');
+                }
+
+                // Call the specific handler
+                handler(newState);
+            });
+        }
+    }
+
+    // Setup individual toggles
+    setupToggle('emailNotificationsToggle', handleEmailNotificationsToggle);
+    setupToggle('twoFactorToggle', handleTwoFactorToggle);
+
+    // Email Notifications Toggle Handler
+    function handleEmailNotificationsToggle(enabled) {
+        if (enabled) {
+            showNotification('Email notifications enabled', 'success');
+        } else {
+            showNotification('Email notifications disabled', 'info');
+        }
+        // Here you would typically make an AJAX call to update user preferences
+    }
+
+    // Two-Factor Authentication Toggle Handler
+    function handleTwoFactorToggle(enabled) {
+        if (enabled) {
+            // Show 2FA setup modal or redirect
+            if (confirm('Would you like to set up Two-Factor Authentication now?')) {
+                showNotification('Redirecting to 2FA setup...', 'info');
+                // In a real implementation, this would redirect to 2FA setup
+            } else {
+                // Revert the toggle if user cancels
+                const toggle = document.querySelector('[aria-checked="true"]');
+                if (toggle) {
+                    toggle.click();
+                }
+            }
+        } else {
+            if (confirm('Are you sure you want to disable Two-Factor Authentication? This will make your account less secure.')) {
+                showNotification('Two-Factor Authentication disabled', 'warning');
+            } else {
+                // Revert the toggle if user cancels
+                const toggle = document.querySelector('[aria-checked="false"]');
+                if (toggle) {
+                    toggle.click();
+                }
+            }
+        }
+    }
+
+
+
+    // Notification System
+    function showNotification(message, type = 'info') {
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg transition-all duration-300 transform translate-x-full`;
+        
+        // Set background color based on type
+        const bgColors = {
+            'success': 'bg-green-600',
+            'error': 'bg-red-600',
+            'warning': 'bg-yellow-600',
+            'info': 'bg-blue-600'
+        };
+        
+        notification.classList.add(bgColors[type] || bgColors.info);
+        notification.innerHTML = `
+            <div class="flex items-center text-white">
+                <span class="mr-2">
+                    ${type === 'success' ? '✓' : type === 'error' ? '✗' : type === 'warning' ? '⚠' : 'ℹ'}
+                </span>
+                <span>${message}</span>
+                <button class="ml-4 text-white hover:text-gray-200" onclick="this.parentElement.parentElement.remove()">
+                    ✕
+                </button>
+            </div>
+        `;
+        
+        // Add to page
+        document.body.appendChild(notification);
+        
+        // Animate in
+        setTimeout(() => {
+            notification.classList.remove('translate-x-full');
+        }, 100);
+        
+        // Auto remove after 3 seconds
+        setTimeout(() => {
+            notification.classList.add('translate-x-full');
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.remove();
+                }
+            }, 300);
+        }, 3000);
+    }
+
+
+});
+</script>
+
+{% endblock %}

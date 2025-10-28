@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asset Handover Signature - {{ handover.handover_id }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            color: #2c3e50;
+            margin: 0;
+        }
+        .handover-info {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 30px;
+        }
+        .asset-list {
+            margin: 20px 0;
+        }
+        .asset-item {
+            background-color: #e8f4f8;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid #3498db;
+        }
+        .signature-section {
+            background-color: #f0f8ff;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 30px 0;
+            text-align: center;
+        }
+        .signature-canvas {
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            margin: 20px 0;
+            background: white;
+        }
+        .btn {
+            background-color: #3498db;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+        }
+        .btn:hover {
+            background-color: #2980b9;
+        }
+        .btn-success {
+            background-color: #27ae60;
+        }
+        .btn-success:hover {
+            background-color: #229954;
+        }
+        .btn-danger {
+            background-color: #e74c3c;
+        }
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
+        .status {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+        .status-pending {
+            background-color: #f39c12;
+            color: white;
+        }
+        .status-completed {
+            background-color: #27ae60;
+            color: white;
+        }
+        .public-notice {
+            background-color: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border-left: 4px solid #28a745;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Asset Handover Signature</h1>
+            <p>Handover ID: {{ handover.handover_id }}</p>
+        </div>
+
+        <div class="public-notice">
+            <strong>🔓 Public Access:</strong> You can access this handover without logging in. 
+            This link is secure and will expire automatically.
+        </div>
+
+        <div class="handover-info">
+            <h3>Handover Details</h3>
+            <p><strong>Employee:</strong> {{ handover.employee.name }}</p>
+            <p><strong>Department:</strong> {{ handover.employee.department }}</p>
+            <p><strong>Created:</strong> {{ handover.created_at|date:"F d, Y \a\t g:i A" }}</p>
+            <p><strong>Status:</strong> 
+                <span class="status status-{{ handover.status|lower }}">
+                    {{ handover.status }}
+                </span>
+            </p>
+            {% if handover.notes %}
+            <p><strong>Notes:</strong> {{ handover.notes }}</p>
+            {% endif %}
+        </div>
+
+        <div class="asset-list">
+            <h3>Assets to be Handed Over</h3>
+            {% for handover_asset in handover_assets %}
+            <div class="asset-item">
+                <h4>{{ handover_asset.asset.name }}</h4>
+                <p><strong>Type:</strong> {{ handover_asset.asset.asset_type }}</p>
+                <p><strong>Serial Number:</strong> {{ handover_asset.asset.serial_number }}</p>
+                {% if handover_asset.condition_before %}
+                <p><strong>Condition:</strong> {{ handover_asset.condition_before }}</p>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+        {% if handover.status == 'Pending' or handover.status == 'In Progress' %}
+        <div class="signature-section">
+            <h3>Employee Signature Required</h3>
+            <p>Please sign below to confirm receipt of the assets:</p>
+            
+            <div style="background-color: #f0f8ff; padding: 15px; border-radius: 5px; margin: 15px 0; text-align: left;">
+                <h4 style="margin-top: 0; color: #2c3e50;">📱 How to Sign:</h4>
+                <p><strong>📱 On Mobile/Tablet:</strong> Use your finger to draw in the white box below</p>
+                <p><strong>🖱️ On Desktop:</strong> Click and drag your mouse in the white box below</p>
+                <p style="color: #666; font-size: 14px; margin-bottom: 0;">
+                    <strong>💡 Tip:</strong> Draw your signature clearly. If you make a mistake, click "Clear Signature" and try again.
+                </p>
+            </div>
+            
+            <canvas id="signatureCanvas" class="signature-canvas" width="600" height="200"></canvas>
+            
+            <div>
+                <button type="button" class="btn btn-danger" onclick="clearSignature()">Clear Signature</button>
+                <button type="button" class="btn btn-success" onclick="saveSignature()">Save Signature</button>
+            </div>
+        </div>
+        {% elif handover.status == 'Completed' %}
+        <div class="signature-section">
+            <h3>✅ Handover Completed</h3>
+            <p>This handover has already been completed and signed.</p>
+            {% if handover.employee_signature %}
+            <p><strong>Signed by:</strong> {{ handover.employee.name }}</p>
+            <p><strong>Signed on:</strong> {{ handover.employee_signature_date|date:"F d, Y \a\t g:i A" }}</p>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <div style="text-align: center; margin-top: 30px; color: #666; font-size: 14px;">
+            <p>This is a secure link for handover signature. No login required.</p>
+            <p>Link expires in 30 days for security.</p>
+        </div>
+    </div>
+
+    <script>
+        let canvas = document.getElementById('signatureCanvas');
+        let ctx = canvas.getContext('2d');
+        let isDrawing = false;
+        let hasSignature = false;
+
+        // Set canvas background
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseout', stopDrawing);
+
+        // Touch events for mobile
+        canvas.addEventListener('touchstart', handleTouch);
+        canvas.addEventListener('touchmove', handleTouch);
+        canvas.addEventListener('touchend', stopDrawing);
+
+        function startDrawing(e) {
+            isDrawing = true;
+            hasSignature = true;
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            ctx.lineTo(x, y);
+            ctx.stroke();
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+        }
+
+        function handleTouch(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const mouseEvent = new MouseEvent(e.type === 'touchstart' ? 'mousedown' : 
+                                            e.type === 'touchmove' ? 'mousemove' : 'mouseup', {
+                clientX: touch.clientX,
+                clientY: touch.clientY
+            });
+            canvas.dispatchEvent(mouseEvent);
+        }
+
+        function clearSignature() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            hasSignature = false;
+        }
+
+        function saveSignature() {
+            if (!hasSignature) {
+                alert('Please provide your signature before saving.');
+                return;
+            }
+
+            const signatureData = canvas.toDataURL();
+            
+            fetch('{% url "assets:save_signature" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    handover_id: '{{ handover.id }}',
+                    signature_type: 'employee',
+                    signature_data: signatureData,
+                    token: '{{ token }}'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert('Signature saved successfully! Handover completed.');
+                    location.reload();
+                } else {
+                    alert('Error saving signature: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error saving signature');
+            });
+        }
+    </script>
+</body>
+</html>

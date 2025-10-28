@@ -1,0 +1,88 @@
+name: Deploy to vSphere VM
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GHCR_TOKEN }}
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+
+    - name: Deploy to vSphere VM
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.VM_HOST }}
+        username: ${{ secrets.VM_SSH_USER }}
+        key: ${{ secrets.VM_SSH_KEY }}
+        port: 22
+        script: |
+          # Set environment variables
+          export GITHUB_REPOSITORY=${{ github.repository }}
+          export IMAGE_TAG=latest
+          
+          # Create app directory if it doesn't exist
+          mkdir -p /home/ubuntu/app
+          cd /home/ubuntu/app
+          
+          # Login to GitHub Container Registry
+          echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          
+          # Pull the latest image
+          docker pull ghcr.io/${{ github.repository }}:latest
+          
+          # Stop existing containers
+          docker-compose -f /home/ubuntu/app/deploy/docker-compose.yml down || true
+          
+          # Copy deployment files if they don't exist
+          if [ ! -f /home/ubuntu/app/deploy/docker-compose.yml ]; then
+            echo "Deployment files not found. Please ensure deploy/ directory is copied to the VM."
+            exit 1
+          fi
+          
+          # Start the application
+          cd /home/ubuntu/app
+          GITHUB_REPOSITORY=${{ github.repository }} docker-compose -f deploy/docker-compose.yml up -d
+          
+          # Clean up old images
+          docker image prune -f
+          
+          echo "Deployment completed successfully!"
+          echo "Application is running at: http://${{ secrets.VM_HOST }}"

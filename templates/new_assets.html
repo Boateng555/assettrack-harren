@@ -1,0 +1,493 @@
+{% extends 'base.html' %}
+{% load employee_filters %}
+
+{% block title %}New Assets | AssetTrack{% endblock %}
+
+{% block content %}
+<div class="w-full px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700 mb-8">
+        <div class="px-6 py-5 border-b border-slate-700 flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <div class="p-3 rounded-lg bg-green-900/20 text-green-400">
+                    <i data-lucide="calendar" class="h-6 w-6"></i>
+                </div>
+                <div>
+                    <h2 class="text-lg font-semibold text-white">New Assets</h2>
+                    <p class="text-sm text-slate-400">Assets added in the last 30 days</p>
+                </div>
+            </div>
+            <div class="flex space-x-3">
+                <a href="{% url 'assets:assets' %}" class="inline-flex items-center px-4 py-2 border border-slate-600 text-sm font-medium rounded-md text-slate-300 bg-slate-700 hover:bg-slate-600">
+                    <i data-lucide="arrow-left" class="mr-2 h-4 w-4"></i>
+                    Back to Assets
+                </a>
+                <button onclick="openAddAssetModal()" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <i data-lucide="plus" class="mr-2 h-4 w-4"></i>
+                    Add Asset
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-slate-800 rounded-xl p-6 shadow-lg border border-slate-700">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-slate-400">Total New</p>
+                    <p class="mt-1 text-3xl font-semibold text-white">{{ total_new }}</p>
+                </div>
+                <div class="p-3 rounded-lg bg-green-900/20 text-green-400">
+                    <i data-lucide="plus-circle" class="h-6 w-6"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-slate-800 rounded-xl p-6 shadow-lg border border-slate-700">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-slate-400">Assigned</p>
+                    <p class="mt-1 text-3xl font-semibold text-white">{{ assigned_new }}</p>
+                </div>
+                <div class="p-3 rounded-lg bg-blue-900/20 text-blue-400">
+                    <i data-lucide="user-check" class="h-6 w-6"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-slate-800 rounded-xl p-6 shadow-lg border border-slate-700">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-slate-400">Unassigned</p>
+                    <p class="mt-1 text-3xl font-semibold text-white">{{ unassigned_new }}</p>
+                </div>
+                <div class="p-3 rounded-lg bg-yellow-900/20 text-yellow-400">
+                    <i data-lucide="user-x" class="h-6 w-6"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search and Filters -->
+    <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700 mb-8">
+        <div class="px-6 py-4">
+            <form method="GET" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <input type="text" name="search" value="{{ search_query|default:'' }}" placeholder="Search new assets..." 
+                           class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <select name="asset_type" class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">All Types</option>
+                        <option value="laptop" {% if asset_type_filter == 'laptop' %}selected{% endif %}>Laptop</option>
+                        <option value="desktop" {% if asset_type_filter == 'desktop' %}selected{% endif %}>Desktop</option>
+                        <option value="tablet" {% if asset_type_filter == 'tablet' %}selected{% endif %}>Tablet</option>
+                        <option value="phone" {% if asset_type_filter == 'phone' %}selected{% endif %}>Phone</option>
+                        <option value="monitor" {% if asset_type_filter == 'monitor' %}selected{% endif %}>Monitor</option>
+                        <option value="keyboard" {% if asset_type_filter == 'keyboard' %}selected{% endif %}>Keyboard</option>
+                        <option value="mouse" {% if asset_type_filter == 'mouse' %}selected{% endif %}>Mouse</option>
+                        <option value="headphones" {% if asset_type_filter == 'headphones' %}selected{% endif %}>Headphones</option>
+                        <option value="other" {% if asset_type_filter == 'other' %}selected{% endif %}>Other</option>
+                    </select>
+                </div>
+                <div class="flex gap-2">
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <i data-lucide="search" class="h-4 w-4"></i>
+                    </button>
+                    <a href="{% url 'assets:new_assets' %}" class="px-4 py-2 bg-slate-600 text-white rounded-md hover:bg-slate-700">
+                        <i data-lucide="refresh-cw" class="h-4 w-4"></i>
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Assets Table -->
+    <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-700">
+                <thead class="bg-slate-800">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Asset</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Type</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Added Date</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Health</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Status</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Assigned To</th>
+                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-slate-800 divide-y divide-slate-700">
+                    {% for asset in assets %}
+                    <tr class="hover:bg-slate-700/50 transition-colors">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div>
+                                <div class="text-sm font-medium text-white">{{ asset.name }}</div>
+                                <div class="text-sm text-slate-400">{{ asset.model|default:"No model" }}</div>
+                                <div class="text-xs text-slate-500">{{ asset.serial_number }}</div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+                                {{ asset.get_asset_type_display }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-white">{{ asset.created_at|date:"M d, Y" }}</div>
+                            <div class="text-xs text-slate-400">{{ asset.created_at|timesince }} ago</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="w-16 bg-slate-700 rounded-full h-2 mr-2">
+                                    <div class="h-2 rounded-full {% if asset.health_score >= 80 %}bg-green-500{% elif asset.health_score >= 60 %}bg-yellow-500{% else %}bg-red-500{% endif %}" 
+                                         style="width: {{ asset.health_score }}%"></div>
+                                </div>
+                                <span class="text-xs text-slate-400">{{ asset.health_score }}%</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                {% if asset.status == 'available' %}bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400
+                                {% elif asset.status == 'assigned' %}bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400
+                                {% elif asset.status == 'maintenance' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400
+                                {% else %}bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400{% endif %}">
+                                {{ asset.get_status_display }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if asset.assigned_to %}
+                                <div class="flex items-center">
+                                    <img class="h-8 w-8 rounded-full mr-3 cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all" src="{{ asset.assigned_to|safe_employee_avatar_url }}" alt="{{ asset.assigned_to.name }}"  onclick="openAvatarModal(this.src, '{{ asset.assigned_to.name }}', '{{ asset.assigned_to.department }} • {{ asset.assigned_to.email }}')">
+                                    <div class="flex flex-col">
+                                        <span class="text-white font-medium text-sm">{{ asset.assigned_to.name|truncatechars:15 }}</span>
+                                        <span class="text-slate-500 text-xs">{{ asset.assigned_to.department|default:"No dept" }}</span>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <div class="flex items-center">
+                                    <div class="h-8 w-8 rounded-full bg-slate-600 flex items-center justify-center mr-3">
+                                        <i data-lucide="user-x" class="h-4 w-4 text-slate-400"></i>
+                                    </div>
+                                    <span class="text-slate-500">Unassigned</span>
+                                </div>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <button onclick="editAsset('{{ asset.id }}')" class="text-blue-500 hover:text-blue-700 mr-3" title="Edit Asset">
+                                <i data-lucide="edit" class="h-4 w-4"></i>
+                            </button>
+                            <button onclick="viewAsset('{{ asset.id }}')" class="text-green-500 hover:text-green-700 mr-3" title="View Details">
+                                <i data-lucide="eye" class="h-4 w-4"></i>
+                            </button>
+                            {% if request.user.is_staff or request.user.is_superuser or asset.can_delete %}
+                                <button onclick="deleteAsset('{{ asset.id }}')" class="text-red-500 hover:text-red-700" title="Delete Asset">
+                                    <i data-lucide="trash-2" class="h-4 w-4"></i>
+                                </button>
+                            {% else %}
+                                <button class="text-slate-400 cursor-not-allowed" title="Delete not allowed - Admin only">
+                                    <i data-lucide="trash-2" class="h-4 w-4"></i>
+                                </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="px-6 py-4 text-center text-slate-400">
+                            <div class="flex flex-col items-center">
+                                <i data-lucide="calendar" class="h-12 w-12 text-green-500 mb-4"></i>
+                                <p class="text-lg font-medium">No new assets found</p>
+                                <p class="text-sm">No assets have been added in the last 30 days</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        {% if assets.has_other_pages %}
+        <div class="px-6 py-4 border-t border-slate-700 flex items-center justify-between">
+            <div class="text-sm text-slate-400">
+                Showing <span class="font-medium">{{ assets.start_index }}</span> to <span class="font-medium">{{ assets.end_index }}</span> of <span class="font-medium">{{ assets.paginator.count }}</span> new assets
+            </div>
+            <div class="flex space-x-2">
+                {% if assets.has_previous %}
+                <a href="?page={{ assets.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if asset_type_filter %}&asset_type={{ asset_type_filter }}{% endif %}" class="relative inline-flex items-center px-3 py-1.5 border border-slate-700 text-sm font-medium rounded-md text-slate-400 bg-slate-800 hover:bg-slate-700">
+                    Previous
+                </a>
+                {% endif %}
+                {% if assets.has_next %}
+                <a href="?page={{ assets.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if asset_type_filter %}&asset_type={{ asset_type_filter }}{% endif %}" class="relative inline-flex items-center px-3 py-1.5 border border-slate-700 text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                    Next
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Add Asset Modal -->
+<div id="addAssetModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-slate-800 rounded-lg shadow-xl max-w-2xl w-full">
+            <div class="px-6 py-4 border-b border-slate-700 flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-white">Add New Asset</h3>
+                <button onclick="closeAddAssetModal()" class="text-slate-400 hover:text-white">
+                    <i data-lucide="x" class="h-6 w-6"></i>
+                </button>
+            </div>
+            
+            <form method="POST" action="{% url 'assets:add_asset' %}">
+                {% csrf_token %}
+                <div class="px-6 py-4">
+                    <!-- Asset Details Form -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-400 mb-2">Asset Name</label>
+                            <input type="text" name="name" id="assetName" required 
+                                   class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-400 mb-2">Asset Type</label>
+                            <div class="relative">
+                                <input type="text" name="asset_type" id="assetType" required 
+                                       class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                                       placeholder="Select or type asset type" 
+                                       autocomplete="off">
+                                <button type="button" id="assetType_toggle" 
+                                        class="absolute inset-y-0 right-0 flex items-center pr-2 text-slate-400 hover:text-slate-300">
+                                    <i data-lucide="chevron-down" class="h-4 w-4"></i>
+                                </button>
+                                <div id="assetType_dropdown" class="hidden absolute z-10 w-full mt-1 bg-slate-700 border border-slate-600 rounded-md shadow-lg max-h-60 overflow-auto">
+                                    <div class="py-1">
+                                        <div class="asset-type-option px-3 py-2 text-sm text-white hover:bg-slate-600 cursor-pointer" data-value="laptop">Laptop</div>
+                                        <div class="asset-type-option px-3 py-2 text-sm text-white hover:bg-slate-600 cursor-pointer" data-value="desktop">Desktop</div>
+                                        <div class="asset-type-option px-3 py-2 text-sm text-white hover:bg-slate-600 cursor-pointer" data-value="monitor">Monitor</div>
+                                        <div class="asset-type-option px-3 py-2 text-sm text-white hover:bg-slate-600 cursor-pointer" data-value="keyboard">Keyboard</div>
+                                        <div class="asset-type-option px-3 py-2 text-sm text-white hover:bg-slate-600 cursor-pointer" data-value="mouse">Mouse</div>
+                                        <div class="asset-type-option px-3 py-2 text-sm text-white hover:bg-slate-600 cursor-pointer" data-value="phone">Phone</div>
+                                        <div class="asset-type-option px-3 py-2 text-sm text-white hover:bg-slate-600 cursor-pointer" data-value="tablet">Tablet</div>
+                                        <div class="asset-type-option px-3 py-2 text-sm text-white hover:bg-slate-600 cursor-pointer" data-value="headphones">Headphones</div>
+                                        <div class="asset-type-option px-3 py-2 text-sm text-white hover:bg-slate-600 cursor-pointer" data-value="other">Other</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-400 mb-2">Serial Number</label>
+                            <input type="text" name="serial_number" id="serialNumber" required 
+                                   class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-400 mb-2">Model</label>
+                            <input type="text" name="model" id="assetModel" 
+                                   class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-400 mb-2">Manufacturer</label>
+                            <input type="text" name="manufacturer" id="manufacturer" 
+                                   class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-400 mb-2">Purchase Date</label>
+                            <input type="date" name="purchase_date" id="purchaseDate" 
+                                   class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-400 mb-2">Status</label>
+                            <select name="status" id="assetStatus" required 
+                                    class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="available">Available</option>
+                                <option value="assigned">Assigned</option>
+                                <option value="maintenance">Maintenance</option>
+                                <option value="lost">Lost</option>
+                                <option value="retired">Retired</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-400 mb-2">Office Location</label>
+                            <select name="office_location" id="officeLocation" required 
+                                    class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="bernem">Bernem Office</option>
+                                <option value="hamburg">Hamburg Office</option>
+                                <option value="other">Other Location</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="px-6 py-4 border-t border-slate-700 flex justify-end space-x-3">
+                    <button type="button" onclick="closeAddAssetModal()" class="px-4 py-2 bg-slate-600 text-white rounded-md hover:bg-slate-700">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                        Add Asset
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Modal functions
+function openAddAssetModal() {
+    document.getElementById('addAssetModal').classList.remove('hidden');
+    // Reset form
+    document.getElementById('addAssetModal').querySelector('form').reset();
+}
+
+function closeAddAssetModal() {
+    document.getElementById('addAssetModal').classList.add('hidden');
+}
+
+// Asset Type Combobox functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const assetTypeInput = document.getElementById('assetType');
+    const assetTypeToggle = document.getElementById('assetType_toggle');
+    const assetTypeDropdown = document.getElementById('assetType_dropdown');
+    const assetTypeOptions = document.querySelectorAll('.asset-type-option');
+    
+    if (assetTypeInput && assetTypeToggle && assetTypeDropdown) {
+        // Toggle dropdown
+        assetTypeToggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            toggleDropdown();
+        });
+        
+        // Show dropdown on input focus
+        assetTypeInput.addEventListener('focus', function() {
+            showDropdown();
+        });
+        
+        // Handle option selection
+        assetTypeOptions.forEach(option => {
+            option.addEventListener('click', function() {
+                const value = this.getAttribute('data-value');
+                const text = this.textContent;
+                assetTypeInput.value = text;
+                hideDropdown();
+            });
+        });
+        
+        // Filter options based on input
+        assetTypeInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            filterOptions(searchTerm);
+        });
+        
+        // Handle keyboard navigation
+        assetTypeInput.addEventListener('keydown', function(e) {
+            const visibleOptions = Array.from(assetTypeOptions).filter(opt => !opt.classList.contains('hidden'));
+            const currentIndex = visibleOptions.findIndex(opt => opt.classList.contains('bg-slate-600'));
+            
+            switch(e.key) {
+                case 'ArrowDown':
+                    e.preventDefault();
+                    navigateOptions(visibleOptions, currentIndex, 1);
+                    break;
+                case 'ArrowUp':
+                    e.preventDefault();
+                    navigateOptions(visibleOptions, currentIndex, -1);
+                    break;
+                case 'Enter':
+                    e.preventDefault();
+                    if (visibleOptions.length > 0) {
+                        const selectedOption = visibleOptions.find(opt => opt.classList.contains('bg-slate-600')) || visibleOptions[0];
+                        const value = selectedOption.getAttribute('data-value');
+                        const text = selectedOption.textContent;
+                        assetTypeInput.value = text;
+                        hideDropdown();
+                    }
+                    break;
+                case 'Escape':
+                    hideDropdown();
+                    break;
+            }
+        });
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!assetTypeInput.contains(e.target) && !assetTypeDropdown.contains(e.target)) {
+                hideDropdown();
+            }
+        });
+        
+        function toggleDropdown() {
+            if (assetTypeDropdown.classList.contains('hidden')) {
+                showDropdown();
+            } else {
+                hideDropdown();
+            }
+        }
+        
+        function showDropdown() {
+            assetTypeDropdown.classList.remove('hidden');
+            assetTypeToggle.querySelector('i').setAttribute('data-lucide', 'chevron-up');
+            lucide.createIcons();
+            filterOptions(assetTypeInput.value.toLowerCase());
+        }
+        
+        function hideDropdown() {
+            assetTypeDropdown.classList.add('hidden');
+            assetTypeToggle.querySelector('i').setAttribute('data-lucide', 'chevron-down');
+            lucide.createIcons();
+            // Clear any highlighted options
+            assetTypeOptions.forEach(opt => opt.classList.remove('bg-slate-600'));
+        }
+        
+        function filterOptions(searchTerm) {
+            assetTypeOptions.forEach(option => {
+                const text = option.textContent.toLowerCase();
+                if (text.includes(searchTerm)) {
+                    option.classList.remove('hidden');
+                } else {
+                    option.classList.add('hidden');
+                }
+            });
+            
+            // Show all options if search is empty
+            if (!searchTerm) {
+                assetTypeOptions.forEach(option => option.classList.remove('hidden'));
+            }
+        }
+        
+        function navigateOptions(options, currentIndex, direction) {
+            // Clear current selection
+            options.forEach(opt => opt.classList.remove('bg-slate-600'));
+            
+            // Calculate new index
+            let newIndex = currentIndex + direction;
+            if (newIndex < 0) newIndex = options.length - 1;
+            if (newIndex >= options.length) newIndex = 0;
+            
+            // Highlight new option
+            if (options[newIndex]) {
+                options[newIndex].classList.add('bg-slate-600');
+                options[newIndex].scrollIntoView({ block: 'nearest' });
+            }
+        }
+    }
+});
+
+// Asset action functions
+function editAsset(assetId) {
+    window.location.href = `/assets/${assetId}/edit/`;
+}
+
+function viewAsset(assetId) {
+    window.location.href = `/assets/${assetId}/`;
+}
+
+function deleteAsset(assetId) {
+    if (confirm('Are you sure you want to delete this asset?')) {
+        window.location.href = `/assets/${assetId}/delete/`;
+    }
+}
+
+
+</script>
+{% endblock %}

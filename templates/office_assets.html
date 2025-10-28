@@ -1,0 +1,826 @@
+{% extends 'base.html' %}
+{% load employee_filters %}
+
+{% block title %}{{ office_name }} Assets | AssetTrack{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Smooth transitions for all interactive elements */
+    .bg-slate-800.rounded-xl {
+        transition: all 0.3s ease-in-out;
+    }
+    
+    /* Office-specific color theming */
+    .office-primary {
+        {% if office_color == 'blue' %}
+        color: #3b82f6;
+        {% elif office_color == 'green' %}
+        color: #10b981;
+        {% elif office_color == 'purple' %}
+        color: #8b5cf6;
+        {% endif %}
+    }
+    
+    .office-bg {
+        {% if office_color == 'blue' %}
+        background-color: rgba(59, 130, 246, 0.1);
+        {% elif office_color == 'green' %}
+        background-color: rgba(16, 185, 129, 0.1);
+        {% elif office_color == 'purple' %}
+        background-color: rgba(139, 92, 246, 0.1);
+        {% endif %}
+    }
+    
+    .office-border {
+        {% if office_color == 'blue' %}
+        border-color: #3b82f6;
+        {% elif office_color == 'green' %}
+        border-color: #10b981;
+        {% elif office_color == 'purple' %}
+        border-color: #8b5cf6;
+        {% endif %}
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="w-full px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Office Header -->
+    <div class="mb-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-3xl font-bold text-white flex items-center">
+                    <i data-lucide="building" class="h-8 w-8 office-primary mr-3"></i>
+                    {{ office_name }} Assets
+                </h1>
+                <p class="text-slate-400 mt-2">Manage and track assets for {{ office_name }}</p>
+            </div>
+            <div class="flex space-x-3">
+                <a href="{% url 'assets:dashboard' %}?office_redirect=false" class="inline-flex items-center px-4 py-2 border border-blue-600 text-sm font-medium rounded-md text-blue-300 bg-blue-700 hover:bg-blue-600">
+                    <i data-lucide="home" class="mr-2 h-4 w-4"></i>
+                    Main Dashboard
+                </a>
+                <a href="{% url 'assets:assets' %}" class="inline-flex items-center px-4 py-2 border border-slate-600 text-sm font-medium rounded-md text-slate-300 bg-slate-700 hover:bg-slate-600">
+                    <i data-lucide="arrow-left" class="mr-2 h-4 w-4"></i>
+                    Back to All Assets
+                </a>
+                {% if office_name == 'Bernem Office' %}
+                <a href="{% url 'assets:hamburg_office_assets' %}" class="inline-flex items-center px-4 py-2 border border-green-600 text-sm font-medium rounded-md text-green-300 bg-green-700 hover:bg-green-600">
+                    <i data-lucide="building" class="mr-2 h-4 w-4"></i>
+                    Switch to Hamburg Office
+                </a>
+                <a href="{% url 'assets:other_locations_assets' %}" class="inline-flex items-center px-4 py-2 border border-purple-600 text-sm font-medium rounded-md text-purple-300 bg-purple-700 hover:bg-purple-600">
+                    <i data-lucide="building" class="mr-2 h-4 w-4"></i>
+                    Switch to Other Locations
+                </a>
+                {% elif office_name == 'Hamburg Office' %}
+                <a href="{% url 'assets:bernem_office_assets' %}" class="inline-flex items-center px-4 py-2 border border-blue-600 text-sm font-medium rounded-md text-blue-300 bg-blue-700 hover:bg-blue-600">
+                    <i data-lucide="building" class="mr-2 h-4 w-4"></i>
+                    Switch to Bernem Office
+                </a>
+                <a href="{% url 'assets:other_locations_assets' %}" class="inline-flex items-center px-4 py-2 border border-purple-600 text-sm font-medium rounded-md text-purple-300 bg-purple-700 hover:bg-purple-600">
+                    <i data-lucide="building" class="mr-2 h-4 w-4"></i>
+                    Switch to Other Locations
+                </a>
+                {% else %}
+                <a href="{% url 'assets:bernem_office_assets' %}" class="inline-flex items-center px-4 py-2 border border-blue-600 text-sm font-medium rounded-md text-blue-300 bg-blue-700 hover:bg-blue-600">
+                    <i data-lucide="building" class="mr-2 h-4 w-4"></i>
+                    Switch to Bernem Office
+                </a>
+                <a href="{% url 'assets:hamburg_office_assets' %}" class="inline-flex items-center px-4 py-2 border border-green-600 text-sm font-medium rounded-md text-green-300 bg-green-700 hover:bg-green-600">
+                    <i data-lucide="building" class="mr-2 h-4 w-4"></i>
+                    Switch to Hamburg Office
+                </a>
+                {% endif %}
+                <button onclick="openAddAssetModal()" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <i data-lucide="plus" class="mr-2 h-4 w-4"></i>
+                    Add Asset
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Office Statistics -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="bg-slate-800 rounded-xl p-6 shadow-lg border border-slate-700">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-slate-400">Total Assets</p>
+                    <p class="mt-1 text-3xl font-semibold text-white">{{ total_assets }}</p>
+                </div>
+                <div class="p-3 rounded-lg office-bg office-primary">
+                    <i data-lucide="package" class="h-6 w-6"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-slate-800 rounded-xl p-6 shadow-lg border border-slate-700">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-slate-400">Available</p>
+                    <p class="mt-1 text-3xl font-semibold text-green-400">{{ available_assets }}</p>
+                </div>
+                <div class="p-3 rounded-lg bg-green-900/20 text-green-400">
+                    <i data-lucide="check-circle" class="h-6 w-6"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-slate-800 rounded-xl p-6 shadow-lg border border-slate-700">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-slate-400">Assigned</p>
+                    <p class="mt-1 text-3xl font-semibold text-blue-400">{{ assigned_assets }}</p>
+                </div>
+                <div class="p-3 rounded-lg bg-blue-900/20 text-blue-400">
+                    <i data-lucide="users" class="h-6 w-6"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-slate-800 rounded-xl p-6 shadow-lg border border-slate-700">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-slate-400">Maintenance</p>
+                    <p class="mt-1 text-3xl font-semibold text-yellow-400">{{ maintenance_assets }}</p>
+                </div>
+                <div class="p-3 rounded-lg bg-yellow-900/20 text-yellow-400">
+                    <i data-lucide="wrench" class="h-6 w-6"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search and Filters -->
+    <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700 mb-8">
+        <div class="px-6 py-5 border-b border-slate-700">
+            <h2 class="text-lg font-semibold text-white">{{ office_name }} Asset Management</h2>
+        </div>
+        
+        <div class="px-6 py-4">
+            <form method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                    <input type="text" name="search" value="{{ search_query|default:'' }}" placeholder="Search assets..." 
+                           class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <select name="status" class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">All Status</option>
+                        <option value="available" {% if status_filter == 'available' %}selected{% endif %}>Available</option>
+                        <option value="assigned" {% if status_filter == 'assigned' %}selected{% endif %}>Assigned</option>
+                        <option value="maintenance" {% if status_filter == 'maintenance' %}selected{% endif %}>Maintenance</option>
+                        <option value="lost" {% if status_filter == 'lost' %}selected{% endif %}>Lost</option>
+                    </select>
+                </div>
+                <div>
+                    <select name="asset_type" class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">All Types</option>
+                        <option value="laptop" {% if asset_type_filter == 'laptop' %}selected{% endif %}>Laptop</option>
+                        <option value="desktop" {% if asset_type_filter == 'desktop' %}selected{% endif %}>Desktop</option>
+                        <option value="monitor" {% if asset_type_filter == 'monitor' %}selected{% endif %}>Monitor</option>
+                        <option value="keyboard" {% if asset_type_filter == 'keyboard' %}selected{% endif %}>Keyboard</option>
+                        <option value="mouse" {% if asset_type_filter == 'mouse' %}selected{% endif %}>Mouse</option>
+                        <option value="phone" {% if asset_type_filter == 'phone' %}selected{% endif %}>Phone</option>
+                        <option value="tablet" {% if asset_type_filter == 'tablet' %}selected{% endif %}>Tablet</option>
+                        <option value="headphones" {% if asset_type_filter == 'headphones' %}selected{% endif %}>Headphones</option>
+                    </select>
+                </div>
+                <div class="flex gap-2">
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <i data-lucide="search" class="h-4 w-4"></i>
+                    </button>
+                    {% if office_name == 'Bernem Office' %}
+                    <a href="{% url 'assets:bernem_office_assets' %}" class="px-4 py-2 bg-slate-600 text-white rounded-md hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500">
+                    {% else %}
+                    <a href="{% url 'assets:hamburg_office_assets' %}" class="px-4 py-2 bg-slate-600 text-white rounded-md hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500">
+                    {% endif %}
+                        <i data-lucide="refresh-cw" class="h-4 w-4"></i>
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Asset Table -->
+    <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700">
+        <div class="px-6 py-5 border-b border-slate-700">
+            <h2 class="text-lg font-semibold text-white">{{ office_name }} Assets</h2>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-700">
+                <thead class="bg-slate-800">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Asset</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Type</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Health</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Status</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Assigned To</th>
+                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-slate-800 divide-y divide-slate-700">
+                    {% for asset in assets %}
+                    <tr class="hover:bg-slate-700/50 transition-colors cursor-pointer" onclick="handleRowClick(event, '{{ asset.id }}')">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div>
+                                <div class="text-sm font-medium text-white">{{ asset.name }}</div>
+                                <div class="text-sm text-slate-400">{{ asset.model|default:"No model" }}</div>
+                                <div class="text-xs text-slate-500">{{ asset.serial_number }}</div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+                                {{ asset.get_asset_type_display }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <button onclick="showAssetHealthDetails('{{ asset.name }}', {{ asset.health_score }}, '{{ asset|health_reference_date|date:"M d, Y"|default:"Not specified" }}', '{{ asset.asset_type }}')" class="flex items-center hover:bg-slate-700/50 rounded px-2 py-1 transition-colors" onclick="event.stopPropagation()">
+                                <div class="w-16 bg-slate-700 rounded-full h-2 mr-2">
+                                    <div class="h-2 rounded-full {% if asset.health_score >= 80 %}bg-green-500{% elif asset.health_score >= 60 %}bg-yellow-500{% else %}bg-red-500{% endif %}" 
+                                         style="width: {{ asset.health_score }}%"></div>
+                                </div>
+                                <span class="text-xs text-slate-400">{{ asset.health_score }}%</span>
+                                <i data-lucide="info" class="h-3 w-3 text-slate-500 ml-1"></i>
+                            </button>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                {% if asset.status == 'available' %}bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400
+                                {% elif asset.status == 'assigned' %}bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400
+                                {% elif asset.status == 'maintenance' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400
+                                {% else %}bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400{% endif %}">
+                                {{ asset.get_status_display }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if asset.assigned_to %}
+                                <div class="flex items-center">
+                                    <img class="h-8 w-8 rounded-full mr-3" src="{{ asset.assigned_to|safe_employee_avatar_url }}" alt="{{ asset.assigned_to.name }}" >
+                                    <div class="flex flex-col">
+                                        <span class="text-white font-medium text-sm">{{ asset.assigned_to.name|truncatechars:15 }}</span>
+                                        <span class="text-slate-500 text-xs">{{ asset.assigned_to.department|default:"No dept" }}</span>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <div class="flex items-center">
+                                    <div class="h-8 w-8 rounded-full bg-slate-600 flex items-center justify-center mr-3">
+                                        <i data-lucide="user-x" class="h-4 w-4 text-slate-400"></i>
+                                    </div>
+                                    <span class="text-slate-500">Unassigned</span>
+                                </div>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium" onclick="event.stopPropagation()">
+                            <div class="flex items-center justify-end space-x-2">
+                                <a href="{% url 'assets:assets_detail' asset.id %}" class="text-blue-500 hover:text-blue-700">
+                                    <i data-lucide="eye" class="h-4 w-4"></i>
+                                </a>
+                                <a href="{% url 'assets:edit_asset' asset.id %}" class="text-yellow-500 hover:text-yellow-700">
+                                    <i data-lucide="edit" class="h-4 w-4"></i>
+                                </a>
+                                <button onclick="deleteAsset('{{ asset.id }}', '{{ asset.name }}')" class="text-red-500 hover:text-red-700">
+                                    <i data-lucide="trash-2" class="h-4 w-4"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="px-6 py-4 text-center text-slate-400">
+                            No assets found for {{ office_name }}.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        <!-- Infinite Scroll Loading Indicator -->
+        <div id="loading-indicator" class="hidden px-6 py-4 border-t border-slate-700 text-center">
+            <div class="inline-flex items-center text-slate-400">
+                <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500 mr-2"></div>
+                Loading more assets...
+            </div>
+        </div>
+        
+        <!-- Load More Button (Fallback) -->
+        <div id="load-more-button" class="hidden px-6 py-4 border-t border-slate-700 text-center">
+            <button onclick="loadMoreAssets()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                Load More Assets
+            </button>
+        </div>
+        
+        <!-- End of Results Indicator -->
+        <div id="end-of-results" class="hidden px-6 py-4 border-t border-slate-700 text-center text-slate-400">
+            <div class="text-sm">
+                Showing {{ assets.paginator.count }} of {{ assets.paginator.count }} results
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Asset Modal -->
+<div id="addAssetModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-slate-800 rounded-lg shadow-xl max-w-2xl w-full">
+            <div class="px-6 py-4 border-b border-slate-700 flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-white">Add New Asset</h3>
+                <button onclick="closeAddAssetModal()" class="text-slate-400 hover:text-white">
+                    <i data-lucide="x" class="h-6 w-6"></i>
+                </button>
+            </div>
+            
+            <form method="POST" action="{% url 'assets:add_asset' %}">
+                {% csrf_token %}
+                <div class="px-6 py-4">
+                    <!-- Barcode Scanner Section -->
+                    <div class="mb-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h4 class="text-md font-medium text-white">Barcode Scanner</h4>
+                            <button type="button" onclick="toggleScanner()" class="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                <i data-lucide="camera" class="mr-2 h-4 w-4"></i>
+                                <span id="scannerButtonText">Scan Barcode</span>
+                            </button>
+                        </div>
+                        
+                        <!-- Scanner Container -->
+                        <div id="scannerContainer" class="hidden">
+                            <div class="bg-slate-900 rounded-lg p-4 mb-4">
+                                <!-- Scanner Status -->
+                                <div id="scannerStatus" class="text-center mb-4">
+                                    <div class="flex items-center justify-center space-x-2">
+                                        <div id="statusIndicator" class="w-3 h-3 rounded-full bg-gray-500"></div>
+                                        <span id="statusText" class="text-sm text-slate-400">Checking camera permissions...</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center justify-center mb-4">
+                                    <div class="relative">
+                                        <video id="scanner" class="w-full max-w-md h-64 bg-black rounded-lg"></video>
+                                        <canvas id="scannerCanvas" class="w-full max-w-md h-64 bg-black rounded-lg hidden"></canvas>
+                                        
+                                        <!-- Scanner Overlay -->
+                                        <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                            <div id="scannerFrame" class="border-2 border-blue-500 rounded-lg transition-all duration-300">
+                                                <div id="scannerTarget" class="w-48 h-32 border-2 border-blue-500 rounded bg-transparent transition-all duration-300"></div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Barcode Detection Feedback -->
+                                        <div id="barcodeDetectionFeedback" class="absolute inset-0 flex items-center justify-center pointer-events-none hidden">
+                                            <div class="text-center text-white">
+                                                <div class="animate-pulse">
+                                                    <i data-lucide="check-circle" class="h-12 w-12 text-green-400 mx-auto mb-2"></i>
+                                                    <p class="text-lg font-semibold text-green-400">Barcode Detected!</p>
+                                                    <p class="text-sm text-green-300">Capturing product information...</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Scanning Animation -->
+                                        <div id="scanningAnimation" class="absolute inset-0 hidden">
+                                            <div class="scanning-line"></div>
+                                        </div>
+                                        
+                                        <!-- Camera Status Overlay -->
+                                        <div id="cameraStatusOverlay" class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-lg hidden">
+                                            <div class="text-center text-white">
+                                                <i data-lucide="camera" class="h-8 w-8 mx-auto mb-2"></i>
+                                                <p class="text-sm">Camera starting...</p>
+                                                <p class="text-xs text-gray-300 mt-1">If screen stays black, try refreshing</p>
+                                                <div class="mt-2 space-y-1">
+                                                    <button onclick="refreshCamera()" class="block w-full px-3 py-1 bg-yellow-600 text-xs text-white rounded hover:bg-yellow-700">
+                                                        <i data-lucide="refresh-cw" class="h-3 w-3 mr-1"></i>
+                                                        Refresh Camera
+                                                    </button>
+                                                    <button onclick="tryAlternativeCameraConfig()" class="block w-full px-3 py-1 bg-orange-600 text-xs text-white rounded hover:bg-orange-700">
+                                                        <i data-lucide="camera" class="h-3 w-3 mr-1"></i>
+                                                        Try Front Camera
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="text-center">
+                                    <p class="text-sm text-slate-400 mb-2">Position barcode within the blue frame</p>
+                                    <div class="flex justify-center space-x-2">
+                                        <button type="button" id="startScanBtn" onclick="startScanner()" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed">
+                                            <i data-lucide="play" class="h-4 w-4 mr-1"></i>
+                                            Start Camera
+                                        </button>
+                                        <button type="button" onclick="stopScanner()" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">
+                                            <i data-lucide="square" class="h-4 w-4 mr-1"></i>
+                                            Stop
+                                        </button>
+                                        <button type="button" onclick="openBarcodeScannerApp()" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                                            <i data-lucide="scan" class="h-4 w-4 mr-1"></i>
+                                            Open Barcode Scanner App
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Manual Barcode Input -->
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-slate-400 mb-2">Barcode (Manual Entry)</label>
+                            <div class="flex">
+                                <input type="text" id="barcodeInput" placeholder="Enter barcode manually or try these test codes: 1234567890123, 9876543210987..." 
+                                       class="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-l-md text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <button type="button" onclick="lookupBarcode()" class="px-4 py-2 bg-blue-600 text-white rounded-r-md hover:bg-blue-700">
+                                    <i data-lucide="search" class="h-4 w-4"></i>
+                                </button>
+                            </div>
+                            
+                            <!-- Test Barcodes -->
+                            <div class="mt-2">
+                                <p class="text-xs text-slate-500 mb-1">Test barcodes:</p>
+                                <div class="flex flex-wrap gap-1">
+                                    <button type="button" onclick="testBarcode('1234567890123')" class="px-2 py-1 bg-slate-600 text-xs text-white rounded hover:bg-slate-500">
+                                        Dell Laptop
+                                    </button>
+                                    <button type="button" onclick="testBarcode('9876543210987')" class="px-2 py-1 bg-slate-600 text-xs text-white rounded hover:bg-slate-500">
+                                        Apple Keyboard
+                                    </button>
+                                    <button type="button" onclick="testBarcode('4567891234567')" class="px-2 py-1 bg-slate-600 text-xs text-white rounded hover:bg-slate-500">
+                                        Samsung Monitor
+                                    </button>
+                                    <button type="button" onclick="testBarcode('7891234567890')" class="px-2 py-1 bg-slate-600 text-xs text-white rounded hover:bg-slate-500">
+                                        Logitech Mouse
+                                    </button>
+                                    <button type="button" onclick="testBarcode('3216549873210')" class="px-2 py-1 bg-slate-600 text-xs text-white rounded hover:bg-slate-500">
+                                        Sony Headphones
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Scan Result -->
+                        <div id="scanResult" class="hidden bg-green-900/20 border border-green-700 rounded-lg p-3 mb-4">
+                            <div class="flex items-center">
+                                <i data-lucide="check-circle" class="h-5 w-5 text-green-400 mr-2"></i>
+                                <span class="text-green-400 text-sm">Barcode scanned successfully!</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Asset Details Form -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-400 mb-2">Asset Name</label>
+                            <input type="text" name="name" id="assetName" required 
+                                   class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-400 mb-2">Asset Type</label>
+                            <div class="relative">
+                                <input type="text" name="asset_type" id="assetType" required 
+                                       class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                                       placeholder="Select or type asset type" 
+                                       autocomplete="off">
+                                <button type="button" id="assetType_toggle" 
+                                        class="absolute inset-y-0 right-0 flex items-center pr-2 text-slate-400 hover:text-slate-300">
+                                    <i data-lucide="chevron-down" class="h-4 w-4"></i>
+                                </button>
+                                <div id="assetType_dropdown" class="hidden absolute z-10 w-full mt-1 bg-slate-700 border border-slate-600 rounded-md shadow-lg max-h-60 overflow-auto">
+                                    <div class="py-1">
+                                        <div class="asset-type-option px-3 py-2 text-sm text-white hover:bg-slate-600 cursor-pointer" data-value="laptop">Laptop</div>
+                                        <div class="asset-type-option px-3 py-2 text-sm text-white hover:bg-slate-600 cursor-pointer" data-value="desktop">Desktop</div>
+                                        <div class="asset-type-option px-3 py-2 text-sm text-white hover:bg-slate-600 cursor-pointer" data-value="monitor">Monitor</div>
+                                        <div class="asset-type-option px-3 py-2 text-sm text-white hover:bg-slate-600 cursor-pointer" data-value="keyboard">Keyboard</div>
+                                        <div class="asset-type-option px-3 py-2 text-sm text-white hover:bg-slate-600 cursor-pointer" data-value="mouse">Mouse</div>
+                                        <div class="asset-type-option px-3 py-2 text-sm text-white hover:bg-slate-600 cursor-pointer" data-value="phone">Phone</div>
+                                        <div class="asset-type-option px-3 py-2 text-sm text-white hover:bg-slate-600 cursor-pointer" data-value="tablet">Tablet</div>
+                                        <div class="asset-type-option px-3 py-2 text-sm text-white hover:bg-slate-600 cursor-pointer" data-value="headphones">Headphones</div>
+                                        <div class="asset-type-option px-3 py-2 text-sm text-white hover:bg-slate-600 cursor-pointer" data-value="other">Other</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-400 mb-2">Serial Number</label>
+                            <input type="text" name="serial_number" id="serialNumber" required 
+                                   class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-400 mb-2">Model</label>
+                            <input type="text" name="model" id="assetModel" 
+                                   class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-400 mb-2">Manufacturer</label>
+                            <input type="text" name="manufacturer" id="manufacturer" 
+                                   class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-400 mb-2">Purchase Date</label>
+                            <input type="date" name="purchase_date" id="purchaseDate" 
+                                   class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-400 mb-2">Status</label>
+                            <select name="status" id="assetStatus" required 
+                                    class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="available">Available</option>
+                                <option value="assigned">Assigned</option>
+                                <option value="maintenance">Maintenance</option>
+                                <option value="lost">Lost</option>
+                                <option value="retired">Retired</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-400 mb-2">Office Location</label>
+                            <select name="office_location" id="officeLocation" required 
+                                    class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                {% if office_name == 'Bernem Office' %}
+                                <option value="bernem" selected>Bernem Office</option>
+                                <option value="hamburg">Hamburg Office</option>
+                                <option value="other">Other Location</option>
+                                {% elif office_name == 'Hamburg Office' %}
+                                <option value="bernem">Bernem Office</option>
+                                <option value="hamburg" selected>Hamburg Office</option>
+                                <option value="other">Other Location</option>
+                                {% else %}
+                                <option value="bernem">Bernem Office</option>
+                                <option value="hamburg">Hamburg Office</option>
+                                <option value="other" selected>Other Location</option>
+                                {% endif %}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Auto-populated Info Display -->
+                    <div id="autoPopulatedInfo" class="hidden mt-4 bg-blue-900/20 border border-blue-700 rounded-lg p-3">
+                        <div class="flex items-center mb-2">
+                            <i data-lucide="info" class="h-4 w-4 text-blue-400 mr-2"></i>
+                            <span class="text-blue-400 text-sm font-medium">Auto-populated from barcode</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 text-xs text-slate-300">
+                            <div><span class="font-medium">Product:</span> <span id="autoProductName">-</span></div>
+                            <div><span class="font-medium">Category:</span> <span id="autoCategory">-</span></div>
+                            <div><span class="font-medium">Specs:</span> <span id="autoSpecs">-</span></div>
+                            <div><span class="font-medium">Warranty:</span> <span id="autoWarranty">-</span></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="px-6 py-4 border-t border-slate-700 flex justify-end space-x-3">
+                    <button type="button" onclick="closeAddAssetModal()" class="px-4 py-2 bg-slate-600 text-white rounded-md hover:bg-slate-700">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                        Add Asset
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Modal functions
+function openAddAssetModal() {
+    document.getElementById('addAssetModal').classList.remove('hidden');
+    // Reset form
+    document.getElementById('addAssetModal').querySelector('form').reset();
+}
+
+function closeAddAssetModal() {
+    document.getElementById('addAssetModal').classList.add('hidden');
+}
+
+// Asset Type Combobox functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const assetTypeInput = document.getElementById('assetType');
+    const assetTypeToggle = document.getElementById('assetType_toggle');
+    const assetTypeDropdown = document.getElementById('assetType_dropdown');
+    
+    if (assetTypeToggle && assetTypeDropdown) {
+        assetTypeToggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            assetTypeDropdown.classList.toggle('hidden');
+        });
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!assetTypeInput.contains(e.target) && !assetTypeDropdown.contains(e.target)) {
+                assetTypeDropdown.classList.add('hidden');
+            }
+        });
+        
+        // Handle option selection
+        const options = assetTypeDropdown.querySelectorAll('.asset-type-option');
+        options.forEach(option => {
+            option.addEventListener('click', function() {
+                assetTypeInput.value = this.dataset.value;
+                assetTypeDropdown.classList.add('hidden');
+            });
+        });
+    }
+});
+
+// Barcode functionality
+function toggleScanner() {
+    const container = document.getElementById('scannerContainer');
+    const button = document.getElementById('scannerButtonText');
+    
+    if (container.classList.contains('hidden')) {
+        container.classList.remove('hidden');
+        button.textContent = 'Hide Scanner';
+    } else {
+        container.classList.add('hidden');
+        button.textContent = 'Scan Barcode';
+    }
+}
+
+function testBarcode(barcode) {
+    document.getElementById('barcodeInput').value = barcode;
+    lookupBarcode();
+}
+
+function lookupBarcode() {
+    const barcode = document.getElementById('barcodeInput').value;
+    if (barcode) {
+        // Simulate barcode lookup
+        document.getElementById('scanResult').classList.remove('hidden');
+        // Auto-populate some fields based on barcode
+        if (barcode === '1234567890123') {
+            document.getElementById('assetName').value = 'Dell Laptop';
+            document.getElementById('assetType').value = 'laptop';
+            document.getElementById('manufacturer').value = 'Dell';
+        } else if (barcode === '9876543210987') {
+            document.getElementById('assetName').value = 'Apple Keyboard';
+            document.getElementById('assetType').value = 'keyboard';
+            document.getElementById('manufacturer').value = 'Apple';
+        }
+    }
+}
+
+// Infinite Scroll Implementation
+let currentPage = {{ assets.number }};
+let totalPages = {{ assets.paginator.num_pages }};
+let isLoading = false;
+
+function handleRowClick(event, assetId) {
+    // Navigate to asset detail page
+    window.location.href = `/assets/${assetId}/`;
+}
+
+function deleteAsset(assetId, assetName) {
+    if (confirm(`Are you sure you want to delete "${assetName}"? This action cannot be undone.`)) {
+        // Create a form and submit it
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/assets/${assetId}/delete/`;
+        
+        // Add CSRF token
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrfmiddlewaretoken';
+        csrfInput.value = csrfToken;
+        form.appendChild(csrfInput);
+        
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+// Infinite Scroll Functionality
+function loadMoreAssets() {
+    if (isLoading || currentPage >= totalPages) {
+        return;
+    }
+    
+    isLoading = true;
+    const loadingIndicator = document.getElementById('loading-indicator');
+    const endOfResults = document.getElementById('end-of-results');
+    const loadMoreButton = document.getElementById('load-more-button');
+    
+    loadingIndicator.classList.remove('hidden');
+    if (loadMoreButton) {
+        loadMoreButton.classList.add('hidden');
+    }
+    
+    // Build URL with current filters
+    const url = new URL(window.location);
+    url.searchParams.set('page', currentPage + 1);
+    
+    fetch(url.toString())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.text();
+        })
+        .then(html => {
+            // Parse the response to extract the table body
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const newRows = doc.querySelectorAll('tbody tr');
+            
+            console.log(`Loading page ${currentPage + 1}, found ${newRows.length} new rows`);
+            
+            if (newRows.length > 0) {
+                // Append new rows to the existing table
+                const tbody = document.querySelector('tbody');
+                if (tbody) {
+                    newRows.forEach(row => {
+                        tbody.appendChild(row);
+                    });
+                }
+                
+                currentPage++;
+                
+                // Check if we've reached the end
+                if (currentPage >= totalPages) {
+                    endOfResults.classList.remove('hidden');
+                    console.log('Reached end of results');
+                }
+            } else {
+                // No more results
+                endOfResults.classList.remove('hidden');
+                console.log('No more results found');
+            }
+        })
+        .catch(error => {
+            console.error('Error loading more assets:', error);
+            // Show error message to user
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'px-6 py-4 border-t border-slate-700 text-center text-red-400';
+            errorDiv.innerHTML = 'Error loading more assets. Please try again.';
+            document.querySelector('.bg-slate-800').appendChild(errorDiv);
+        })
+        .finally(() => {
+            isLoading = false;
+            loadingIndicator.classList.add('hidden');
+            
+            // Show load more button again if there are more pages
+            if (currentPage < totalPages) {
+                const loadMoreButton = document.getElementById('load-more-button');
+                if (loadMoreButton) {
+                    loadMoreButton.classList.remove('hidden');
+                }
+            }
+        });
+}
+
+// Intersection Observer for infinite scroll
+const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting && !isLoading && currentPage < totalPages) {
+            console.log('Triggering loadMoreAssets from intersection observer');
+            loadMoreAssets();
+        }
+    });
+}, {
+    rootMargin: '200px'
+});
+
+// Initialize infinite scroll
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Initializing infinite scroll');
+    console.log(`Current page: ${currentPage}, Total pages: ${totalPages}`);
+    
+    // Create a sentinel element at the bottom of the table for intersection observation
+    const table = document.querySelector('table');
+    if (table) {
+        const sentinel = document.createElement('div');
+        sentinel.id = 'scroll-sentinel';
+        sentinel.style.height = '1px';
+        sentinel.style.width = '100%';
+        table.parentNode.appendChild(sentinel);
+        
+        observer.observe(sentinel);
+        console.log('Sentinel element created and observed');
+    }
+    
+    // Show load more button as fallback if not on last page
+    if (currentPage < totalPages) {
+        document.getElementById('load-more-button').classList.remove('hidden');
+        console.log('Showing load more button as fallback');
+    }
+    
+    // Show end of results if we're already at the last page
+    if (currentPage >= totalPages) {
+        document.getElementById('end-of-results').classList.remove('hidden');
+        console.log('Already at last page, showing end of results');
+    }
+});
+
+function showAssetHealthDetails(assetName, healthScore, referenceDate, assetType) {
+    alert(`Asset: ${assetName}\nHealth Score: ${healthScore}%\nReference Date: ${referenceDate}\nType: ${assetType}`);
+}
+
+// Initialize Lucide icons
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+});
+</script>
+{% endblock %}

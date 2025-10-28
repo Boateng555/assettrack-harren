@@ -1,0 +1,567 @@
+{% extends 'base.html' %}
+{% load employee_filters %}
+
+{% block title %}Handover {{ handover.handover_id }} | AssetTrack{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700 mb-8">
+        <div class="px-6 py-5 border-b border-slate-700 flex items-center justify-between">
+            <div>
+                <h2 class="text-lg font-semibold text-white">Handover {{ handover.handover_id }}</h2>
+                <p class="text-slate-400 mt-1">Created {{ handover.created_at|date:"M d, Y \a\t g:i A" }}</p>
+            </div>
+            <div class="flex items-center space-x-3">
+                <span class="px-3 py-1 text-sm font-medium rounded-full 
+                    {% if handover.status == 'Completed' %}bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400
+                    {% elif handover.status == 'Pending Scan' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400
+                    {% else %}bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400{% endif %}">
+                    {{ handover.status }}
+                </span>
+                <a href="{% url 'assets:handovers' %}" class="px-4 py-2 border border-slate-600 rounded-md text-sm font-medium text-slate-300 hover:bg-slate-700">
+                    Back to Handovers
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Main Content -->
+        <div class="lg:col-span-2 space-y-8">
+            <!-- Employee Information -->
+            <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700">
+                <div class="px-6 py-5 border-b border-slate-700">
+                    <h3 class="text-lg font-semibold text-white">Employee Information</h3>
+                </div>
+                <div class="px-6 py-6">
+                    <div class="flex items-center">
+                        <img class="h-16 w-16 rounded-full cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all" src="{{ handover.employee|safe_employee_avatar_url }}" alt="{{ handover.employee.name }}" onclick="openAvatarModal(this.src, '{{ handover.employee.name }}', '{{ handover.employee.department }} • {{ handover.employee.email }}')">
+                        <div class="ml-4">
+                            <h4 class="text-xl font-semibold text-white">{{ handover.employee.name }}</h4>
+                            <p class="text-slate-400">{{ handover.employee.department }}</p>
+                            <p class="text-slate-400">{{ handover.employee.email }}</p>
+                            {% if handover.employee.phone %}
+                                <p class="text-slate-400">{{ handover.employee.phone }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Assets List -->
+            <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700">
+                <div class="px-6 py-5 border-b border-slate-700">
+                    <h3 class="text-lg font-semibold text-white">Assets ({{ handover.assets.count }})</h3>
+                </div>
+                <div class="px-6 py-6">
+                    {% if handover.assets.all %}
+                        <div class="space-y-4">
+                            {% for asset in handover.assets.all %}
+                            <div class="flex items-center justify-between p-4 bg-slate-700 rounded-lg">
+                                <div class="flex items-center">
+                                    <div class="p-2 bg-blue-900/20 rounded-lg">
+                                        <i data-lucide="package" class="h-6 w-6 text-blue-400"></i>
+                                    </div>
+                                    <div class="ml-4">
+                                        <h4 class="text-white font-medium">{{ asset.name }}</h4>
+                                        <p class="text-slate-400 text-sm">{{ asset.serial_number }} • {{ asset.get_asset_type_display }}</p>
+                                        {% if asset.model %}
+                                            <p class="text-slate-400 text-sm">{{ asset.model }}</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <span class="px-2 py-1 text-xs font-semibold rounded-full 
+                                        {% if asset.status == 'assigned' %}bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400
+                                        {% else %}bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400{% endif %}">
+                                        {{ asset.get_status_display }}
+                                    </span>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-slate-400 text-center py-8">No assets assigned to this handover.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Handover Details -->
+            <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700">
+                <div class="px-6 py-5 border-b border-slate-700">
+                    <h3 class="text-lg font-semibold text-white">Handover Details</h3>
+                </div>
+                <div class="px-6 py-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-400">Handover Mode</label>
+                            <p class="mt-1 text-white">{{ handover.mode }}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-400">Created By</label>
+                            <p class="mt-1 text-white">{{ handover.created_by.get_full_name|default:handover.created_by.username }}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-400">Created Date</label>
+                            <p class="mt-1 text-white">{{ handover.created_at|date:"M d, Y g:i A" }}</p>
+                        </div>
+                        {% if handover.completed_at %}
+                        <div>
+                            <label class="block text-sm font-medium text-slate-400">Completed Date</label>
+                            <p class="mt-1 text-white">{{ handover.completed_at|date:"M d, Y g:i A" }}</p>
+                        </div>
+                        {% endif %}
+                        {% if handover.notes %}
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-slate-400">Notes</label>
+                            <p class="mt-1 text-white">{{ handover.notes }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="space-y-8">
+            <!-- Status Card -->
+            <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700">
+                <div class="px-6 py-5 border-b border-slate-700">
+                    <h3 class="text-lg font-semibold text-white">Status</h3>
+                </div>
+                <div class="px-6 py-6">
+                    <div class="text-center">
+                        <div class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium
+                            {% if handover.status == 'Approved' %}bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400
+                            {% elif handover.status == 'Completed' %}bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400
+                            {% elif handover.status == 'Pending Scan' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400
+                            {% else %}bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400{% endif %}">
+                            {% if handover.status == 'Approved' %}
+                                <i data-lucide="shield-check" class="h-5 w-5 mr-2"></i>
+                            {% elif handover.status == 'Completed' %}
+                                <i data-lucide="check-circle" class="h-5 w-5 mr-2"></i>
+                            {% elif handover.status == 'Pending Scan' %}
+                                <i data-lucide="clock" class="h-5 w-5 mr-2"></i>
+                            {% else %}
+                                <i data-lucide="file-text" class="h-5 w-5 mr-2"></i>
+                            {% endif %}
+                            {{ handover.status }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700">
+                <div class="px-6 py-5 border-b border-slate-700">
+                    <h3 class="text-lg font-semibold text-white">Quick Actions</h3>
+                </div>
+                <div class="px-6 py-6 space-y-3">
+                    {% if handover.status == 'Completed' or handover.status == 'Approved' %}
+                        <button onclick="sendHandoverEmail()" class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors">
+                            <i data-lucide="mail" class="h-4 w-4 inline mr-2"></i>
+                            Send Handover Email
+                        </button>
+                        <button onclick="printHandoverPDF()" class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors">
+                            <i data-lucide="file-text" class="h-4 w-4 inline mr-2"></i>
+                            Print as PDF
+                        </button>
+                    {% else %}
+                        <button disabled class="w-full px-4 py-2 bg-slate-600 text-slate-400 rounded-md cursor-not-allowed">
+                            <i data-lucide="mail" class="h-4 w-4 inline mr-2"></i>
+                            Send Handover Email
+                            <span class="text-xs block mt-1">(Complete signatures first)</span>
+                        </button>
+                        <button disabled class="w-full px-4 py-2 bg-slate-600 text-slate-400 rounded-md cursor-not-allowed">
+                            <i data-lucide="file-text" class="h-4 w-4 inline mr-2"></i>
+                            Print as PDF
+                            <span class="text-xs block mt-1">(Complete signatures first)</span>
+                        </button>
+                    {% endif %}
+                    
+                    <a href="{% url 'assets:edit_handover' handover.id %}" class="w-full px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors inline-flex items-center justify-center">
+                        <i data-lucide="edit" class="h-4 w-4 inline mr-2"></i>
+                        Edit Handover
+                    </a>
+                    
+                    <button onclick="shareHandoverLink()" class="w-full px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors">
+                        <i data-lucide="share-2" class="h-4 w-4 inline mr-2"></i>
+                        Share Link
+                    </button>
+                    
+                    {% if handover.status == 'Completed' and request.user.is_staff %}
+                        <button onclick="approveHandover()" class="w-full px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors">
+                            <i data-lucide="shield-check" class="h-4 w-4 inline mr-2"></i>
+                            Approve Handover
+                        </button>
+                    {% elif handover.status == 'Approved' %}
+                        <button disabled class="w-full px-4 py-2 bg-emerald-600 text-white rounded-md opacity-50 cursor-not-allowed">
+                            <i data-lucide="shield-check" class="h-4 w-4 inline mr-2"></i>
+                            Already Approved
+                        </button>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Signatures -->
+            <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700">
+                <div class="px-6 py-5 border-b border-slate-700">
+                    <h3 class="text-lg font-semibold text-white">Signatures</h3>
+                </div>
+                <div class="px-6 py-6 space-y-4">
+                    <!-- Employee Signature -->
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">Employee Signature</label>
+                        {% if handover.employee_signature %}
+                            <div class="bg-slate-700 rounded-lg p-4">
+                                <img src="{{ handover.employee_signature }}" alt="Employee Signature" class="w-full h-20 object-contain">
+                                <p class="text-xs text-slate-400 mt-2">Signed by {{ handover.employee.name }}</p>
+                            </div>
+                        {% else %}
+                            <div class="bg-slate-700 rounded-lg p-4 border-2 border-dashed border-slate-600">
+                                <p class="text-slate-400 text-center">No signature yet</p>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- IT Signature -->
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">IT Signature</label>
+                        {% if handover.it_signature %}
+                            <div class="bg-slate-700 rounded-lg p-4">
+                                <img src="{{ handover.it_signature }}" alt="IT Signature" class="w-full h-20 object-contain">
+                                <p class="text-xs text-slate-400 mt-2">Signed by IT Staff</p>
+                            </div>
+                        {% else %}
+                            <div class="bg-slate-700 rounded-lg p-4 border-2 border-dashed border-slate-600">
+                                <p class="text-slate-400 text-center">No signature yet</p>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Acknowledgment -->
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">Employee Acknowledgment</label>
+                        <div class="bg-slate-700 rounded-lg p-4">
+                            {% if handover.employee_acknowledgment %}
+                                <div class="flex items-center text-green-400">
+                                    <i data-lucide="check-circle" class="h-5 w-5 mr-2"></i>
+                                    <span>Acknowledged</span>
+                                </div>
+                            {% else %}
+                                <div class="flex items-center text-slate-400">
+                                    <i data-lucide="x-circle" class="h-5 w-5 mr-2"></i>
+                                    <span>Not acknowledged</span>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Email Status -->
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">Email Status</label>
+                        <div class="bg-slate-700 rounded-lg p-4">
+                            {% if handover.email_sent %}
+                                <div class="flex items-center text-green-400">
+                                    <i data-lucide="mail-check" class="h-5 w-5 mr-2"></i>
+                                    <span>Email Sent</span>
+                                </div>
+                                {% if handover.email_sent_at %}
+                                    <p class="text-xs text-slate-400 mt-1">Sent on {{ handover.email_sent_at|date:"M d, Y g:i A" }}</p>
+                                {% endif %}
+                            {% else %}
+                                <div class="flex items-center text-slate-400">
+                                    <i data-lucide="mail" class="h-5 w-5 mr-2"></i>
+                                    <span>Email Not Sent</span>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            {% if handover.status != 'Completed' %}
+            <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700">
+                <div class="px-6 py-5 border-b border-slate-700">
+                    <h3 class="text-lg font-semibold text-white">Actions</h3>
+                </div>
+                <div class="px-6 py-6 space-y-3">
+                    <button onclick="openSignatureModal('employee')" class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <i data-lucide="pen-line" class="h-4 w-4 inline mr-2"></i>
+                        Employee Signature
+                    </button>
+                    <button onclick="openSignatureModal('it')" class="w-full px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                        <i data-lucide="pen-line" class="h-4 w-4 inline mr-2"></i>
+                        IT Signature
+                    </button>
+                    <button onclick="toggleAcknowledgment()" class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500">
+                        <i data-lucide="check" class="h-4 w-4 inline mr-2"></i>
+                        Toggle Acknowledgment
+                    </button>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Signature Modal -->
+<div id="signatureModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-slate-800 border-slate-700">
+        <div class="mt-3">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-medium text-white" id="signatureModalTitle">Add Signature</h3>
+                <button onclick="closeSignatureModal()" class="text-slate-400 hover:text-white">
+                    <i data-lucide="x" class="h-6 w-6"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-2">Signature</label>
+                    <div class="border border-slate-600 rounded-md bg-white">
+                        <canvas id="signatureCanvas" width="350" height="200" class="w-full h-48"></canvas>
+                    </div>
+                </div>
+                
+                <div class="flex justify-between">
+                    <button onclick="clearSignature()" class="px-3 py-1 text-sm border border-slate-600 rounded text-slate-300 hover:bg-slate-700">
+                        Clear
+                    </button>
+                    <div class="flex space-x-2">
+                        <button onclick="saveSignature()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                            Save Signature
+                        </button>
+                        <button onclick="sendSignature()" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                            Send
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+<script>
+let signaturePad;
+let currentSignatureType = '';
+
+function openSignatureModal(type) {
+    currentSignatureType = type;
+    const title = type === 'employee' ? 'Employee Signature' : 'IT Signature';
+    document.getElementById('signatureModalTitle').textContent = title;
+    document.getElementById('signatureModal').classList.remove('hidden');
+    
+    // Initialize signature pad
+    const canvas = document.getElementById('signatureCanvas');
+    signaturePad = new SignaturePad(canvas, {
+        backgroundColor: 'white',
+        penColor: 'black'
+    });
+}
+
+function closeSignatureModal() {
+    document.getElementById('signatureModal').classList.add('hidden');
+    if (signaturePad) {
+        signaturePad.clear();
+    }
+}
+
+function clearSignature() {
+    if (signaturePad) {
+        signaturePad.clear();
+    }
+}
+
+function saveSignature() {
+    if (signaturePad.isEmpty()) {
+        alert('Please provide a signature');
+        return;
+    }
+    
+    const signatureData = signaturePad.toDataURL();
+    
+    fetch('{% url "assets:save_signature" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+            handover_id: '{{ handover.id }}',
+            signature_type: currentSignatureType,
+            signature_data: signatureData
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            closeSignatureModal();
+            location.reload(); // Refresh to show new signature
+        } else {
+            alert('Error saving signature: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error saving signature');
+    });
+}
+
+function sendSignature() {
+    // For employee signature, we send the handover for them to sign
+    // No signature required from IT staff - employee will sign when they receive the email
+    
+    fetch('{% url "assets:save_signature" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+            handover_id: '{{ handover.id }}',
+            signature_type: 'employee',
+            signature_data: '', // No signature data - employee will sign
+            send_email: true
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            closeSignatureModal();
+            location.reload(); // Refresh to show updated status
+            
+            if (data.email_sent) {
+                alert('Handover sent to employee for signature: ' + '{{ handover.employee.email }}' + '!');
+            } else if (data.email_sent === false) {
+                alert('Handover prepared, but email could not be sent: ' + (data.email_error || 'Unknown error'));
+            } else {
+                alert('Handover sent successfully!');
+            }
+        } else {
+            alert('Error sending handover: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error sending handover');
+    });
+}
+
+function toggleAcknowledgment() {
+    fetch('{% url "assets:save_signature" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+            handover_id: '{{ handover.id }}',
+            signature_type: 'acknowledgment',
+            signature_data: '{{ handover.employee_acknowledgment|yesno:"false,true" }}'
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            location.reload(); // Refresh to show updated acknowledgment
+        } else {
+            alert('Error updating acknowledgment: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error updating acknowledgment');
+    });
+}
+
+// Quick Actions Functions
+function sendHandoverEmail() {
+    if (confirm('Send handover email to employee and IT team?')) {
+        fetch('{% url "assets:send_handover_email" handover.id %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert('Handover email sent successfully!');
+                location.reload();
+            } else {
+                alert('Error sending email: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error sending email');
+        });
+    }
+}
+
+function printHandoverPDF() {
+    // Open PDF in new window
+    window.open('{% url "assets:handover_pdf" handover.id %}', '_blank');
+}
+
+function shareHandoverLink() {
+    const handoverUrl = window.location.href;
+    const shareText = `Handover for {{ handover.employee.name }} - ${handoverUrl}`;
+    
+    if (navigator.share) {
+        navigator.share({
+            title: 'Asset Handover',
+            text: shareText,
+            url: handoverUrl
+        });
+    } else {
+        // Fallback: copy to clipboard
+        navigator.clipboard.writeText(handoverUrl).then(() => {
+            alert('Handover link copied to clipboard!');
+        }).catch(() => {
+            // Fallback for older browsers
+            const textArea = document.createElement('textarea');
+            textArea.value = handoverUrl;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            alert('Handover link copied to clipboard!');
+        });
+    }
+}
+
+function approveHandover() {
+    if (confirm('Are you sure you want to approve this handover? This action cannot be undone.')) {
+        fetch('{% url "assets:approve_handover" handover.id %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert('Handover approved successfully!');
+                location.reload();
+            } else {
+                alert('Error approving handover: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error approving handover');
+        });
+    }
+}
+</script>
+
+<!-- CSRF Token for AJAX requests -->
+{% csrf_token %}
+{% endblock %}

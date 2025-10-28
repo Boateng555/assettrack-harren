@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Handover Link Expired</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .expired-icon {
+            font-size: 48px;
+            color: #f39c12;
+            margin-bottom: 20px;
+        }
+        .expired-title {
+            color: #2c3e50;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        .expired-message {
+            color: #666;
+            font-size: 16px;
+            margin-bottom: 30px;
+        }
+        .handover-info {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+            text-align: left;
+        }
+        .btn {
+            background-color: #3498db;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn:hover {
+            background-color: #2980b9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="expired-icon">⏰</div>
+        <h1 class="expired-title">Handover Link Expired</h1>
+        <p class="expired-message">
+            This handover link has expired and is no longer valid. Links expire after 30 days for security reasons.
+        </p>
+        
+        {% if handover %}
+        <div class="handover-info">
+            <h3>Handover Details:</h3>
+            <p><strong>Handover ID:</strong> {{ handover.handover_id }}</p>
+            <p><strong>Employee:</strong> {{ handover.employee.name }}</p>
+            <p><strong>Department:</strong> {{ handover.employee.department }}</p>
+            <p><strong>Status:</strong> {{ handover.status }}</p>
+        </div>
+        {% endif %}
+        
+        <a href="javascript:history.back()" class="btn">Go Back</a>
+        
+        <div style="margin-top: 30px; color: #666; font-size: 14px;">
+            <p><strong>What to do:</strong></p>
+            <ul style="text-align: left; display: inline-block;">
+                <li>Contact your IT department for a new handover link</li>
+                <li>Request a fresh email with an updated link</li>
+                <li>Check if you received a newer email</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>
+
+

@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Notifications | AssetTrack{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-slate-900">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold text-white">Notifications</h1>
+                    <p class="text-slate-400 mt-2">Stay updated with your latest activities</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-sm text-slate-400">
+                        {{ unread_count }} unread notification{{ unread_count|pluralize }}
+                    </span>
+                    {% if unread_count > 0 %}
+                    <button onclick="markAllAsRead()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
+                        Mark All as Read
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Notifications List -->
+        <div class="bg-slate-800 rounded-lg shadow-lg">
+            {% if notifications %}
+                <div class="divide-y divide-slate-700">
+                    {% for notification in notifications %}
+                    <div class="p-6 hover:bg-slate-700/50 transition-colors {% if not notification.is_read %}bg-slate-700/30 border-l-4 border-blue-500{% endif %}" 
+                         id="notification-{{ notification.id }}">
+                        <div class="flex items-start space-x-4">
+                            <!-- Icon -->
+                            <div class="flex-shrink-0">
+                                {% if notification.notification_type == 'asset_assigned' %}
+                                    <div class="w-10 h-10 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
+                                        <i data-lucide="check-circle" class="h-5 w-5 text-green-600 dark:text-green-400"></i>
+                                    </div>
+                                {% elif notification.notification_type == 'asset_returned' %}
+                                    <div class="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
+                                        <i data-lucide="arrow-left" class="h-5 w-5 text-blue-600 dark:text-blue-400"></i>
+                                    </div>
+                                {% elif notification.notification_type == 'handover_approved' %}
+                                    <div class="w-10 h-10 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
+                                        <i data-lucide="handshake" class="h-5 w-5 text-green-600 dark:text-green-400"></i>
+                                    </div>
+                                {% elif notification.notification_type == 'handover_rejected' %}
+                                    <div class="w-10 h-10 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center">
+                                        <i data-lucide="x-circle" class="h-5 w-5 text-red-600 dark:text-red-400"></i>
+                                    </div>
+                                {% elif notification.notification_type == 'maintenance_due' %}
+                                    <div class="w-10 h-10 bg-yellow-100 dark:bg-yellow-900 rounded-full flex items-center justify-center">
+                                        <i data-lucide="alert-triangle" class="h-5 w-5 text-yellow-600 dark:text-yellow-400"></i>
+                                    </div>
+                                {% elif notification.notification_type == 'welcome_pack_sent' %}
+                                    <div class="w-10 h-10 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center">
+                                        <i data-lucide="package" class="h-5 w-5 text-purple-600 dark:text-purple-400"></i>
+                                    </div>
+                                {% else %}
+                                    <div class="w-10 h-10 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
+                                        <i data-lucide="bell" class="h-5 w-5 text-gray-600 dark:text-gray-400"></i>
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Content -->
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center justify-between">
+                                    <h3 class="text-lg font-medium text-white {% if not notification.is_read %}font-semibold{% endif %}">
+                                        {{ notification.title }}
+                                    </h3>
+                                    <div class="flex items-center space-x-2">
+                                        <!-- Priority Badge -->
+                                        {% if notification.priority == 'urgent' %}
+                                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+                                                Urgent
+                                            </span>
+                                        {% elif notification.priority == 'high' %}
+                                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
+                                                High
+                                            </span>
+                                        {% elif notification.priority == 'medium' %}
+                                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                                Medium
+                                            </span>
+                                        {% else %}
+                                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
+                                                Low
+                                            </span>
+                                        {% endif %}
+                                        
+                                        <!-- Unread indicator -->
+                                        {% if not notification.is_read %}
+                                            <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <p class="text-slate-300 mt-1">{{ notification.message }}</p>
+                                
+                                <div class="flex items-center justify-between mt-3">
+                                    <p class="text-sm text-slate-400">
+                                        {{ notification.created_at|timesince }} ago
+                                    </p>
+                                    
+                                    <div class="flex items-center space-x-2">
+                                        {% if not notification.is_read %}
+                                        <button onclick="markAsRead({{ notification.id }})" 
+                                                class="text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors">
+                                            Mark as read
+                                        </button>
+                                        {% endif %}
+                                        
+                                        {% if notification.asset %}
+                                        <a href="{% url 'assets:assets_detail' notification.asset.id %}" 
+                                           class="text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors">
+                                            View Asset
+                                        </a>
+                                        {% endif %}
+                                        
+                                        {% if notification.employee %}
+                                        <a href="{% url 'assets:employees_detail' notification.employee.id %}" 
+                                           class="text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors">
+                                            View Employee
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <!-- Empty State -->
+                <div class="text-center py-12">
+                    <div class="w-16 h-16 bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i data-lucide="bell-off" class="h-8 w-8 text-slate-400"></i>
+                    </div>
+                    <h3 class="text-lg font-medium text-white mb-2">No notifications yet</h3>
+                    <p class="text-slate-400">You'll see your notifications here when they arrive.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+function markAsRead(notificationId) {
+    fetch(`/notifications/${notificationId}/mark-read/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const notificationElement = document.getElementById(`notification-${notificationId}`);
+            notificationElement.classList.remove('bg-slate-700/30', 'border-l-4', 'border-blue-500');
+            notificationElement.querySelector('.font-semibold').classList.remove('font-semibold');
+            
+            // Remove the unread indicator
+            const unreadIndicator = notificationElement.querySelector('.bg-blue-500');
+            if (unreadIndicator) {
+                unreadIndicator.remove();
+            }
+            
+            // Hide the "Mark as read" button
+            const markAsReadButton = notificationElement.querySelector('button[onclick*="markAsRead"]');
+            if (markAsReadButton) {
+                markAsReadButton.style.display = 'none';
+            }
+            
+            // Update unread count
+            updateUnreadCount();
+        }
+    })
+    .catch(error => {
+        console.error('Error marking notification as read:', error);
+    });
+}
+
+function markAllAsRead() {
+    fetch('/notifications/mark-all-read/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Reload the page to show updated notifications
+            location.reload();
+        }
+    })
+    .catch(error => {
+        console.error('Error marking all notifications as read:', error);
+    });
+}
+
+function updateUnreadCount() {
+    // This would typically make an API call to get the updated count
+    // For now, we'll just hide the "Mark All as Read" button if no unread notifications
+    const unreadIndicators = document.querySelectorAll('.bg-blue-500');
+    if (unreadIndicators.length === 0) {
+        const markAllButton = document.querySelector('button[onclick="markAllAsRead()"]');
+        if (markAllButton) {
+            markAllButton.style.display = 'none';
+        }
+    }
+}
+</script>
+
+<!-- CSRF Token for AJAX requests -->
+{% csrf_token %}
+{% endblock %}
+
+

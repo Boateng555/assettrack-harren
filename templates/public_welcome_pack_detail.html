@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Harren Group Welcome Pack - {{ welcome_pack.employee.name }}</title>
+    <style>
+        @media print {
+            body { margin: 0; padding: 0; }
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.4;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0;
+            background-color: white;
+        }
+        
+        .print-only {
+            display: none;
+        }
+        
+        .welcome-pack-document {
+            background: white;
+            padding: 40px;
+            margin: 0 auto;
+            box-shadow: none;
+        }
+        
+        .document-header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #2c3e50;
+            padding-bottom: 15px;
+        }
+        
+        .document-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin: 0 0 8px 0;
+        }
+        
+        .document-subtitle {
+            font-size: 12px;
+            color: #666;
+            margin: 0;
+        }
+        
+        .section {
+            margin-bottom: 25px;
+        }
+        
+        .section-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 12px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 3px;
+        }
+        
+        .info-row {
+            margin-bottom: 6px;
+            display: flex;
+        }
+        
+        .info-label {
+            font-weight: bold;
+            width: 180px;
+            color: #555;
+            font-size: 14px;
+        }
+        
+        .info-value {
+            flex: 1;
+            color: #333;
+            font-size: 14px;
+        }
+        
+        .welcome-message-box {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        
+        .welcome-message-box p {
+            margin: 0;
+            color: #333;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        .subsection {
+            margin-bottom: 15px;
+        }
+        
+        .subsection-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 8px;
+        }
+        
+        .checklist {
+            margin: 0;
+            padding-left: 20px;
+        }
+        
+        .checklist li {
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: #333;
+        }
+        
+        .reminders {
+            margin: 0;
+            padding-left: 20px;
+        }
+        
+        .reminders li {
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: #333;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 1px solid #ddd;
+            color: #666;
+            font-size: 11px;
+        }
+        
+        .public-access-banner {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .expiry-info {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 14px;
+        }
+        
+        .print-controls {
+            text-align: left;
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+        }
+        
+        .print-button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .print-button:hover {
+            background-color: #0056b3;
+        }
+        
+        .print-button:active {
+            background-color: #004085;
+        }
+    </style>
+</head>
+<body>
+        <div class="public-access-banner no-print">
+            <strong>🔓 Public Access</strong> - No password required
+        </div>
+        
+        {% if welcome_pack.public_token.expires_at %}
+        <div class="expiry-info no-print">
+            <strong>⏰ Access Expires:</strong> {{ welcome_pack.public_token.expires_at|date:"F d, Y \a\t g:i A" }}
+        </div>
+        {% endif %}
+        
+        <div class="print-controls no-print">
+            <button onclick="window.print()" class="print-button">
+                🖨️ Print
+            </button>
+        </div>
+    
+    <div class="welcome-pack-document">
+        <div class="document-header">
+            <h1 class="document-title">Harren Group Welcome Pack</h1>
+            <p class="document-subtitle">
+                Welcome Pack ID: {{ welcome_pack.id }} | Generated: {{ welcome_pack.generated_at|date:"M d, Y g:i A" }}
+            </p>
+        </div>
+        
+        <div class="section">
+            <h2 class="section-title">Employee Information</h2>
+            <div class="info-row">
+                <span class="info-label">Employee Name:</span>
+                <span class="info-value">{{ welcome_pack.employee.name }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Department:</span>
+                <span class="info-value">{{ welcome_pack.employee.department|default:"Not specified" }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Email Address:</span>
+                <span class="info-value">{{ welcome_pack.employee.email }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Temporary Password:</span>
+                <span class="info-value">{{ welcome_pack.employee_password }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Office Location:</span>
+                <span class="info-value">{{ welcome_pack.office_location|default:"Not specified" }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Start Date:</span>
+                <span class="info-value">{{ welcome_pack.start_date|date:"M d, Y"|default:"Not specified" }}</span>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2 class="section-title">IT Contact Information</h2>
+            <div class="info-row">
+                <span class="info-label">IT Contact Person:</span>
+                <span class="info-value">{{ welcome_pack.it_contact_person|default:"Not specified" }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">IT Helpdesk Email:</span>
+                <span class="info-value">{{ welcome_pack.it_helpdesk_email|default:"Not specified" }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">IT Phone Number:</span>
+                <span class="info-value">{{ welcome_pack.it_phone_number|default:"Not specified" }}</span>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2 class="section-title">Microsoft Teams Information</h2>
+            <div class="info-row">
+                <span class="info-label">Teams Username:</span>
+                <span class="info-value">{{ welcome_pack.teams_username|default:"Not specified" }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Teams Email:</span>
+                <span class="info-value">{{ welcome_pack.teams_email|default:"Not specified" }}</span>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2 class="section-title">Welcome Message</h2>
+            <div class="welcome-message-box">
+                <p>Welcome to Harren Group! We're excited to have you join our team. This welcome pack contains all the essential information you'll need to get started. Please review all the information carefully and don't hesitate to contact the IT team if you have any questions or need assistance with your setup.</p>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2 class="section-title">Next Steps</h2>
+            <div class="subsection">
+                <h3 class="subsection-title">First Day Checklist:</h3>
+                <ul class="checklist">
+                    <li>Review your login credentials</li>
+                    <li>Set up your Microsoft Teams account</li>
+                    <li>Contact IT for any technical issues</li>
+                    <li>Familiarize yourself with company policies</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2 class="section-title">Important Reminders</h2>
+            <ul class="reminders">
+                <li>Change your temporary password immediately</li>
+                <li>Keep your login credentials secure</li>
+                <li>Report any security concerns to IT</li>
+            </ul>
+        </div>
+        
+        {% if welcome_pack.department_info %}
+        <div class="section">
+            <h2 class="section-title">Department Information</h2>
+            <div class="info-row">
+                <span class="info-label">Department Details:</span>
+                <span class="info-value">{{ welcome_pack.department_info|linebreaks }}</span>
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if welcome_pack.notes %}
+        <div class="section">
+            <h2 class="section-title">Additional Notes</h2>
+            <div class="info-row">
+                <span class="info-label">Notes:</span>
+                <span class="info-value">{{ welcome_pack.notes|linebreaks }}</span>
+            </div>
+        </div>
+        {% endif %}
+        
+        <div class="footer">
+            <p><strong>Welcome to Harren Group!</strong></p>
+            <p>This is your personal welcome pack. Please keep this information secure.</p>
+            <p>Generated on {{ welcome_pack.generated_at|date:"F d, Y \a\t g:i A" }}</p>
+            <p style="color: #999; font-size: 12px;">
+                This is an automated message from Harren Group AssetTrack.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

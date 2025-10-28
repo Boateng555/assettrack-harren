@@ -1,0 +1,224 @@
+{% extends 'base.html' %}
+
+{% block title %}Azure AD Sync | AssetTrack{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700 mb-8">
+        <div class="px-6 py-5 border-b border-slate-700 flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <button onclick="window.history.back()" class="text-slate-400 hover:text-white transition-colors">
+                    <i data-lucide="arrow-left" class="h-6 w-6"></i>
+                </button>
+                <div class="flex items-center space-x-4">
+                    <div class="flex-shrink-0 h-16 w-16 bg-blue-600 rounded-full flex items-center justify-center">
+                        <i data-lucide="cloud" class="h-8 w-8 text-white"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-bold text-white">Azure AD Integration</h2>
+                        <p class="text-slate-400">Sync employees and devices from Microsoft Azure Active Directory</p>
+                    </div>
+                </div>
+            </div>
+            <div class="flex space-x-3">
+                <form method="post" class="inline">
+                    {% csrf_token %}
+                    <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700">
+                        <i data-lucide="refresh-cw" class="mr-2 h-4 w-4"></i>
+                        Sync Now
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sync Statistics -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <!-- Employee Sync Status -->
+        <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700">
+            <div class="p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
+                            <i data-lucide="users" class="h-4 w-4 text-white"></i>
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-slate-400">Employees Synced</p>
+                        <p class="text-2xl font-bold text-white">{{ employees_with_azure }}/{{ total_employees }}</p>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="text-slate-400">Sync Rate</span>
+                        <span class="text-white font-medium">{{ azure_sync_percentage.employees|floatformat:1 }}%</span>
+                    </div>
+                    <div class="mt-2 w-full bg-slate-700 rounded-full h-2">
+                        <div class="bg-green-600 h-2 rounded-full" style="width: {{ azure_sync_percentage.employees }}%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Asset Sync Status -->
+        <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700">
+            <div class="p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                            <i data-lucide="laptop" class="h-4 w-4 text-white"></i>
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-slate-400">Devices Synced</p>
+                        <p class="text-2xl font-bold text-white">{{ assets_with_azure }}/{{ total_assets }}</p>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="text-slate-400">Sync Rate</span>
+                        <span class="text-white font-medium">{{ azure_sync_percentage.assets|floatformat:1 }}%</span>
+                    </div>
+                    <div class="mt-2 w-full bg-slate-700 rounded-full h-2">
+                        <div class="bg-blue-600 h-2 rounded-full" style="width: {{ azure_sync_percentage.assets }}%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Last Sync -->
+        <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700">
+            <div class="p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
+                            <i data-lucide="clock" class="h-4 w-4 text-white"></i>
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-slate-400">Last Sync</p>
+                        <p class="text-lg font-bold text-white">Manual</p>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <p class="text-sm text-slate-400">Click "Sync Now" to update data</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sync Status -->
+        <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700">
+            <div class="p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-yellow-600 rounded-full flex items-center justify-center">
+                            <i data-lucide="settings" class="h-4 w-4 text-white"></i>
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-slate-400">Sync Status</p>
+                        <p class="text-lg font-bold text-white">Ready</p>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <p class="text-sm text-slate-400">Azure AD integration active</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Configuration Information -->
+    <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700 mb-8">
+        <div class="px-6 py-4 border-b border-slate-700">
+            <h3 class="text-lg font-semibold text-white">Azure AD Configuration</h3>
+        </div>
+        <div class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <h4 class="text-md font-medium text-white mb-3">Required Settings</h4>
+                    <div class="space-y-2">
+                        <div class="flex items-center">
+                            <i data-lucide="check-circle" class="h-4 w-4 text-green-500 mr-2"></i>
+                            <span class="text-sm text-slate-300">AZURE_TENANT_ID</span>
+                        </div>
+                        <div class="flex items-center">
+                            <i data-lucide="check-circle" class="h-4 w-4 text-green-500 mr-2"></i>
+                            <span class="text-sm text-slate-300">AZURE_CLIENT_ID</span>
+                        </div>
+                        <div class="flex items-center">
+                            <i data-lucide="check-circle" class="h-4 w-4 text-green-500 mr-2"></i>
+                            <span class="text-sm text-slate-300">AZURE_CLIENT_SECRET</span>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <h4 class="text-md font-medium text-white mb-3">What Gets Synced</h4>
+                    <div class="space-y-2">
+                        <div class="flex items-center">
+                            <i data-lucide="user" class="h-4 w-4 text-blue-400 mr-2"></i>
+                            <span class="text-sm text-slate-300">Employee names and details</span>
+                        </div>
+                        <div class="flex items-center">
+                            <i data-lucide="laptop" class="h-4 w-4 text-blue-400 mr-2"></i>
+                            <span class="text-sm text-slate-300">Device information</span>
+                        </div>
+                        <div class="flex items-center">
+                            <i data-lucide="link" class="h-4 w-4 text-blue-400 mr-2"></i>
+                            <span class="text-sm text-slate-300">Device assignments</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Sync Activity -->
+    <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700">
+        <div class="px-6 py-4 border-b border-slate-700">
+            <h3 class="text-lg font-semibold text-white">Sync Instructions</h3>
+        </div>
+        <div class="p-6">
+            <div class="prose prose-invert max-w-none">
+                <h4 class="text-white font-medium mb-3">How to Set Up Azure AD Integration:</h4>
+                <ol class="list-decimal list-inside space-y-2 text-slate-300">
+                    <li>Register an application in Azure AD</li>
+                    <li>Grant appropriate permissions (User.Read.All, Device.Read.All)</li>
+                    <li>Add the following settings to your Django settings.py:</li>
+                </ol>
+                
+                <div class="mt-4 bg-slate-900 rounded-lg p-4">
+                    <pre class="text-sm text-green-400"><code># Azure AD Integration Settings
+AZURE_TENANT_ID = 'your-tenant-id'
+AZURE_CLIENT_ID = 'your-client-id'
+AZURE_CLIENT_SECRET = 'your-client-secret'</code></pre>
+                </div>
+                
+                <div class="mt-4">
+                    <h4 class="text-white font-medium mb-2">Available Commands:</h4>
+                    <div class="bg-slate-900 rounded-lg p-4">
+                        <pre class="text-sm text-blue-400"><code># Full sync
+python manage.py sync_azure_ad
+
+# Sync only employees
+python manage.py sync_azure_ad --employees-only
+
+# Sync only devices
+python manage.py sync_azure_ad --devices-only
+
+# Sync only assignments
+python manage.py sync_azure_ad --assignments-only</code></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+
+
+
+
+

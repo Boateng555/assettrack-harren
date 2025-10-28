@@ -1,0 +1,673 @@
+{% extends 'base.html' %}
+{% load employee_filters %}
+
+{% block title %}Admin Dashboard | AssetTrack{% endblock %}
+
+{% block content %}
+<div class="w-full px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Admin Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-white">Admin Dashboard</h1>
+        <p class="text-slate-400 mt-2">Manage system settings, users, and configurations</p>
+    </div>
+
+    <!-- Admin Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="bg-slate-800 rounded-xl p-6 shadow-lg border border-slate-700">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-slate-400">Total Users</p>
+                    <p class="mt-1 text-3xl font-semibold text-white">{{ total_django_users }}</p>
+                </div>
+                <div class="p-3 rounded-lg bg-blue-900/20 text-blue-400">
+                    <i data-lucide="users" class="h-6 w-6"></i>
+                </div>
+            </div>
+            <div class="mt-4">
+                <div class="flex items-center text-sm text-slate-400">
+                    <i data-lucide="trending-up" class="h-4 w-4 text-green-500 mr-1"></i>
+                    <span>3 new this month</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-slate-800 rounded-xl p-6 shadow-lg border border-slate-700">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-slate-400">Active Sessions</p>
+                    <p class="mt-1 text-3xl font-semibold text-white">{{ active_sessions }}</p>
+                </div>
+                <div class="p-3 rounded-lg bg-green-900/20 text-green-400">
+                    <i data-lucide="activity" class="h-6 w-6"></i>
+                </div>
+            </div>
+            <div class="mt-4">
+                <div class="flex items-center text-sm text-slate-400">
+                    <i data-lucide="clock" class="h-4 w-4 text-blue-400 mr-1"></i>
+                    <span>Last 24 hours</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-slate-800 rounded-xl p-6 shadow-lg border border-slate-700">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-slate-400">System Health</p>
+                    <p class="mt-1 text-3xl font-semibold text-white">{{ system_health }}%</p>
+                </div>
+                <div class="p-3 rounded-lg bg-green-900/20 text-green-400">
+                    <i data-lucide="check-circle" class="h-6 w-6"></i>
+                </div>
+            </div>
+            <div class="mt-4">
+                <div class="flex items-center text-sm text-slate-400">
+                    <i data-lucide="shield" class="h-4 w-4 text-green-500 mr-1"></i>
+                    <span>All systems operational</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-slate-800 rounded-xl p-6 shadow-lg border border-slate-700">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-slate-400">Storage Used</p>
+                    <p class="mt-1 text-3xl font-semibold text-white">{{ storage_used }}%</p>
+                </div>
+                <div class="p-3 rounded-lg bg-amber-900/20 text-amber-400">
+                    <i data-lucide="hard-drive" class="h-6 w-6"></i>
+                </div>
+            </div>
+            <div class="mt-4">
+                <div class="flex items-center text-sm text-slate-400">
+                    <i data-lucide="alert-triangle" class="h-4 w-4 text-yellow-500 mr-1"></i>
+                    <span>2.1GB available</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Sections -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- User Management -->
+        <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700">
+            <div class="px-6 py-5 border-b border-slate-700 flex items-center justify-between">
+                <h2 class="text-lg font-semibold text-white">User Management</h2>
+                {% if user.is_superuser %}
+                <div class="flex space-x-2">
+                    <a href="{% url 'assets:user_management' %}" class="inline-flex items-center px-3 py-1.5 border border-slate-600 text-sm font-medium rounded-md text-slate-300 bg-slate-700 hover:bg-slate-600">
+                        <i data-lucide="users" class="mr-2 h-4 w-4"></i>
+                        Manage Users
+                    </a>
+                    <a href="{% url 'assets:add_user' %}" class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        <i data-lucide="plus" class="mr-2 h-4 w-4"></i>
+                        Add User
+                    </a>
+                </div>
+                {% else %}
+                <div class="text-slate-500 text-sm">
+                    <i data-lucide="lock" class="inline h-4 w-4 mr-1"></i>
+                    Superuser access required
+                </div>
+                {% endif %}
+            </div>
+            <div class="p-6">
+                <div class="space-y-4">
+                    {% for django_user in django_users %}
+                    <div class="flex items-center justify-between p-3 bg-slate-700 rounded-lg hover:bg-slate-600 cursor-pointer transition-colors" onclick="openUserProfile('{{ django_user.id }}', '{{ django_user.username }}')">
+                        <div class="flex items-center">
+                            <div class="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-semibold text-sm">
+                                {{ django_user.username|first|upper }}
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm font-medium text-white">{{ django_user.get_full_name|default:django_user.username }}</p>
+                                <p class="text-sm text-slate-400">
+                                    {% if django_user.is_superuser %}
+                                        Administrator
+                                    {% elif django_user.is_staff %}
+                                        Staff
+                                    {% else %}
+                                        User
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            {% if django_user.is_active %}
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 cursor-pointer hover:bg-green-200 dark:hover:bg-green-800/50 transition-colors" onclick="event.stopPropagation(); toggleUserStatus('{{ django_user.id }}', '{{ django_user.is_active }}')" title="Click to deactivate">
+                                    Active
+                                </span>
+                            {% else %}
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 cursor-pointer hover:bg-red-200 dark:hover:bg-red-800/50 transition-colors" onclick="event.stopPropagation(); toggleUserStatus('{{ django_user.id }}', '{{ django_user.is_active }}')" title="Click to activate">
+                                    Inactive
+                                </span>
+                            {% endif %}
+                            <div class="relative">
+                                <button onclick="event.stopPropagation(); toggleUserMenu('{{ django_user.id }}')" class="text-slate-400 hover:text-slate-200 focus:outline-none">
+                                    <i data-lucide="more-vertical" class="h-4 w-4"></i>
+                                </button>
+                                
+                                <!-- User Actions Dropdown -->
+                                <div id="user-menu-{{ django_user.id }}" class="hidden absolute right-0 mt-2 w-48 bg-slate-700 rounded-md shadow-lg z-50 border border-slate-600">
+                                    <div class="py-1">
+                                        <a href="{% url 'assets:edit_user' django_user.id %}" class="flex items-center px-4 py-2 text-sm text-slate-300 hover:bg-slate-600 hover:text-white">
+                                            <i data-lucide="edit" class="mr-3 h-4 w-4"></i>
+                                            Edit User
+                                        </a>
+                                        <a href="{% url 'assets:change_user_password' django_user.id %}" class="flex items-center px-4 py-2 text-sm text-slate-300 hover:bg-slate-600 hover:text-white">
+                                            <i data-lucide="key" class="mr-3 h-4 w-4"></i>
+                                            Change Password
+                                        </a>
+                                        {% if django_user.id != user.id %}
+                                        <button onclick="toggleUserStatus('{{ django_user.id }}', '{{ django_user.is_active }}')" class="flex items-center w-full px-4 py-2 text-sm text-slate-300 hover:bg-slate-600 hover:text-white">
+                                            <i data-lucide="{% if django_user.is_active %}user-x{% else %}user-check{% endif %}" class="mr-3 h-4 w-4"></i>
+                                            {% if django_user.is_active %}Deactivate{% else %}Activate{% endif %} User
+                                        </button>
+                                        <div class="border-t border-slate-600"></div>
+                                        <button onclick="deleteUser('{{ django_user.id }}', '{{ django_user.username }}')" class="flex items-center w-full px-4 py-2 text-sm text-red-400 hover:bg-red-900/20 hover:text-red-300">
+                                            <i data-lucide="trash-2" class="mr-3 h-4 w-4"></i>
+                                            Delete User
+                                        </button>
+                                        {% else %}
+                                        <div class="px-4 py-2 text-sm text-slate-500">
+                                            <i data-lucide="info" class="mr-3 h-4 w-4 inline"></i>
+                                            Cannot modify your own account
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-8">
+                        <i data-lucide="users" class="h-12 w-12 mx-auto text-slate-400 mb-4"></i>
+                        <p class="text-slate-400">No users found</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- System Settings -->
+        <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700">
+            <div class="px-6 py-5 border-b border-slate-700">
+                <h2 class="text-lg font-semibold text-white">System Settings</h2>
+            </div>
+            <div class="p-6">
+                <div class="space-y-6">
+                    <!-- Theme Settings -->
+                    <div>
+                        <h3 class="text-sm font-medium text-white mb-3">Theme Settings</h3>
+                        <div class="space-y-3">
+                            <label class="flex items-center">
+                                <input type="radio" name="theme" value="dark" checked class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-slate-300">
+                                <span class="ml-3 text-sm text-slate-300">Dark Theme</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="theme" value="light" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-slate-300">
+                                <span class="ml-3 text-sm text-slate-300">Light Theme</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="theme" value="auto" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-slate-300">
+                                <span class="ml-3 text-sm text-slate-300">Auto (System)</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Notification Settings -->
+                    <div>
+                        <h3 class="text-sm font-medium text-white mb-3">Notification Settings</h3>
+                        <div class="space-y-3">
+                            <label class="flex items-center">
+                                <input type="checkbox" checked class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-slate-300 rounded">
+                                <span class="ml-3 text-sm text-slate-300">Email notifications</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" checked class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-slate-300 rounded">
+                                <span class="ml-3 text-sm text-slate-300">Push notifications</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-slate-300 rounded">
+                                <span class="ml-3 text-sm text-slate-300">SMS alerts</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Security Settings -->
+                    <div>
+                        <h3 class="text-sm font-medium text-white mb-3">Security Settings</h3>
+                        <div class="space-y-3">
+                            <label class="flex items-center">
+                                <input type="checkbox" checked class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-slate-300 rounded">
+                                <span class="ml-3 text-sm text-slate-300">Two-factor authentication</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" checked class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-slate-300 rounded">
+                                <span class="ml-3 text-sm text-slate-300">Session timeout</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-slate-300 rounded">
+                                <span class="ml-3 text-sm text-slate-300">Login notifications</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Logs -->
+    <div class="mt-8 bg-slate-800 rounded-xl shadow-lg border border-slate-700">
+        <div class="px-6 py-5 border-b border-slate-700 flex items-center justify-between">
+            <h2 class="text-lg font-semibold text-white">System Logs</h2>
+            <button class="inline-flex items-center px-3 py-1.5 border border-slate-600 text-sm font-medium rounded-md text-slate-300 bg-slate-800 hover:bg-slate-700">
+                <i data-lucide="download" class="mr-2 h-4 w-4"></i>
+                Export Logs
+            </button>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-700">
+                <thead class="bg-slate-800">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Timestamp</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Level</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">User</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Action</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Details</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-slate-800 divide-y divide-slate-700">
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-400">2024-01-15 14:30:22</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                                INFO
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-white">admin</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-white">User Login</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-400">Successful login from 192.168.1.100</td>
+                    </tr>
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-400">2024-01-15 14:25:15</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+                                DEBUG
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-white">system</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-white">Asset Sync</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-400">Azure sync completed successfully</td>
+                    </tr>
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-400">2024-01-15 14:20:08</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400">
+                                WARN
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-white">jane.smith</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-white">Asset Assignment</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-400">Asset LAP-001 assigned to user</td>
+                    </tr>
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-400">2024-01-15 14:15:42</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
+                                ERROR
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-white">system</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-white">Backup Failed</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-400">Database backup failed - insufficient space</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Real Notifications Section -->
+    <div class="mt-8 bg-slate-800 rounded-xl shadow-lg border border-slate-700">
+        <div class="px-6 py-5 border-b border-slate-700 flex items-center justify-between">
+            <h2 class="text-lg font-semibold text-white">Recent Notifications</h2>
+            <div class="flex space-x-2">
+                <a href="{% url 'assets:notifications' %}" class="inline-flex items-center px-3 py-1.5 border border-slate-600 text-sm font-medium rounded-md text-slate-300 bg-slate-700 hover:bg-slate-600">
+                    <i data-lucide="bell" class="mr-2 h-4 w-4"></i>
+                    View All
+                </a>
+                <button onclick="markAllNotificationsRead()" class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                    <i data-lucide="check" class="mr-2 h-4 w-4"></i>
+                    Mark All Read
+                </button>
+            </div>
+        </div>
+        <div class="p-6">
+            <div id="admin-notifications-list">
+                <!-- Notifications will be loaded here via AJAX -->
+                <div class="text-center py-4">
+                    <i data-lucide="loader" class="h-6 w-6 animate-spin mx-auto text-slate-400"></i>
+                    <p class="text-slate-400 mt-2">Loading notifications...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contact Support Section -->
+    <div class="mt-8 bg-slate-800 rounded-xl shadow-lg border border-slate-700">
+        <div class="px-6 py-5 border-b border-slate-700 flex items-center justify-between">
+            <h2 class="text-lg font-semibold text-white">Support Management</h2>
+            <div class="flex space-x-2">
+                <a href="{% url 'assets:contact_support' %}" class="inline-flex items-center px-3 py-1.5 border border-slate-600 text-sm font-medium rounded-md text-slate-300 bg-slate-700 hover:bg-slate-600">
+                    <i data-lucide="mail" class="mr-2 h-4 w-4"></i>
+                    Contact Support
+                </a>
+                <button onclick="refreshSupportStats()" class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
+                    <i data-lucide="refresh-cw" class="mr-2 h-4 w-4"></i>
+                    Refresh Stats
+                </button>
+            </div>
+        </div>
+        <div class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Support Stats -->
+                <div class="bg-slate-700 rounded-lg p-4">
+                    <div class="flex items-center">
+                        <div class="p-2 bg-blue-900/20 rounded-lg">
+                            <i data-lucide="mail" class="h-5 w-5 text-blue-400"></i>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm font-medium text-slate-300">Support Requests</p>
+                            <p class="text-2xl font-bold text-white" id="support-requests-count">-</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-700 rounded-lg p-4">
+                    <div class="flex items-center">
+                        <div class="p-2 bg-yellow-900/20 rounded-lg">
+                            <i data-lucide="clock" class="h-5 w-5 text-yellow-400"></i>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm font-medium text-slate-300">Pending</p>
+                            <p class="text-2xl font-bold text-white" id="pending-requests-count">-</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-700 rounded-lg p-4">
+                    <div class="flex items-center">
+                        <div class="p-2 bg-green-900/20 rounded-lg">
+                            <i data-lucide="check-circle" class="h-5 w-5 text-green-400"></i>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm font-medium text-slate-300">Resolved</p>
+                            <p class="text-2xl font-bold text-white" id="resolved-requests-count">-</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Support Requests -->
+            <div class="mt-6">
+                <h3 class="text-lg font-medium text-white mb-4">Recent Support Activity</h3>
+                <div id="recent-support-requests">
+                    <div class="text-center py-4">
+                        <i data-lucide="loader" class="h-6 w-6 animate-spin mx-auto text-slate-400"></i>
+                        <p class="text-slate-400 mt-2">Loading support requests...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Load notifications for admin dashboard
+document.addEventListener('DOMContentLoaded', function() {
+    loadAdminNotifications();
+    loadSupportStats();
+});
+
+function loadAdminNotifications() {
+    fetch('/notifications/')
+        .then(response => response.text())
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const notificationItems = doc.querySelectorAll('.divide-y > div');
+            
+            const container = document.getElementById('admin-notifications-list');
+            
+            if (notificationItems.length > 0) {
+                container.innerHTML = '';
+                // Show only the first 5 notifications
+                Array.from(notificationItems).slice(0, 5).forEach(item => {
+                    const clone = item.cloneNode(true);
+                    clone.classList.remove('p-6', 'hover:bg-slate-700/50');
+                    clone.classList.add('p-4', 'hover:bg-slate-600', 'border-b', 'border-slate-600');
+                    
+                    // Remove action buttons for admin view
+                    const actionButtons = clone.querySelectorAll('button, a[href*="assets/"], a[href*="employees/"]');
+                    actionButtons.forEach(button => button.remove());
+                    
+                    container.appendChild(clone);
+                });
+                
+                // Add "View All" link
+                const viewAllLink = document.createElement('div');
+                viewAllLink.className = 'text-center mt-4';
+                viewAllLink.innerHTML = '<a href="/notifications/" class="text-blue-400 hover:text-blue-300 text-sm font-medium">View all notifications →</a>';
+                container.appendChild(viewAllLink);
+            } else {
+                container.innerHTML = `
+                    <div class="text-center py-8">
+                        <i data-lucide="bell-off" class="h-12 w-12 mx-auto text-slate-400 mb-4"></i>
+                        <p class="text-slate-400">No notifications available</p>
+                    </div>
+                `;
+            }
+            
+            // Re-initialize Lucide icons
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        })
+        .catch(error => {
+            console.error('Error loading notifications:', error);
+            document.getElementById('admin-notifications-list').innerHTML = `
+                <div class="text-center py-8">
+                    <i data-lucide="alert-circle" class="h-12 w-12 mx-auto text-red-400 mb-4"></i>
+                    <p class="text-red-400">Error loading notifications</p>
+                </div>
+            `;
+        });
+}
+
+function loadSupportStats() {
+    // This would typically make an API call to get support statistics
+    // For now, we'll show sample data
+    document.getElementById('support-requests-count').textContent = '12';
+    document.getElementById('pending-requests-count').textContent = '3';
+    document.getElementById('resolved-requests-count').textContent = '9';
+    
+    // Load recent support requests
+    const container = document.getElementById('recent-support-requests');
+    container.innerHTML = `
+        <div class="space-y-3">
+            <div class="flex items-center justify-between p-3 bg-slate-700 rounded-lg">
+                <div class="flex items-center">
+                    <div class="w-8 h-8 bg-blue-900/20 rounded-full flex items-center justify-center mr-3">
+                        <i data-lucide="mail" class="h-4 w-4 text-blue-400"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-white">Asset Assignment Issue</p>
+                        <p class="text-xs text-slate-400">admin@example.com • 2 hours ago</p>
+                    </div>
+                </div>
+                <span class="px-2 py-1 text-xs font-medium rounded-full bg-yellow-900/30 text-yellow-400">Pending</span>
+            </div>
+            
+            <div class="flex items-center justify-between p-3 bg-slate-700 rounded-lg">
+                <div class="flex items-center">
+                    <div class="w-8 h-8 bg-green-900/20 rounded-full flex items-center justify-center mr-3">
+                        <i data-lucide="check-circle" class="h-4 w-4 text-green-400"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-white">Login Problem Resolved</p>
+                        <p class="text-xs text-slate-400">user@example.com • 1 day ago</p>
+                    </div>
+                </div>
+                <span class="px-2 py-1 text-xs font-medium rounded-full bg-green-900/30 text-green-400">Resolved</span>
+            </div>
+            
+            <div class="flex items-center justify-between p-3 bg-slate-700 rounded-lg">
+                <div class="flex items-center">
+                    <div class="w-8 h-8 bg-purple-900/20 rounded-full flex items-center justify-center mr-3">
+                        <i data-lucide="lightbulb" class="h-4 w-4 text-purple-400"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-white">Feature Request: Bulk Import</p>
+                        <p class="text-xs text-slate-400">manager@example.com • 3 days ago</p>
+                    </div>
+                </div>
+                <span class="px-2 py-1 text-xs font-medium rounded-full bg-blue-900/30 text-blue-400">Under Review</span>
+            </div>
+        </div>
+    `;
+    
+    // Re-initialize Lucide icons
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+}
+
+function markAllNotificationsRead() {
+    fetch('/notifications/mark-all-read/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Reload notifications
+            loadAdminNotifications();
+            // Show success message
+            alert('All notifications marked as read!');
+        }
+    })
+    .catch(error => {
+        console.error('Error marking notifications as read:', error);
+        alert('Error marking notifications as read');
+    });
+}
+
+function refreshSupportStats() {
+    // Reload support statistics
+    loadSupportStats();
+    alert('Support statistics refreshed!');
+}
+
+// User menu functions
+function openUserProfile(userId, username) {
+    // Show user profile modal or redirect to user detail page
+    const userDetailUrl = `/users/${userId}/edit/`;
+    
+    // Create a modal or redirect to user detail page
+    if (confirm(`View profile for ${username}?`)) {
+        window.location.href = userDetailUrl;
+    }
+}
+
+function toggleUserMenu(userId) {
+    const menu = document.getElementById(`user-menu-${userId}`);
+    const allMenus = document.querySelectorAll('[id^="user-menu-"]');
+    
+    // Close all other menus
+    allMenus.forEach(otherMenu => {
+        if (otherMenu.id !== `user-menu-${userId}`) {
+            otherMenu.classList.add('hidden');
+        }
+    });
+    
+    // Toggle current menu
+    menu.classList.toggle('hidden');
+}
+
+function toggleUserStatus(userId, currentStatus) {
+    const isActive = currentStatus === 'True';
+    const action = isActive ? 'deactivate' : 'activate';
+    const confirmMessage = `Are you sure you want to ${action} this user?`;
+    
+    if (confirm(confirmMessage)) {
+        fetch(`/toggle-user-status/${userId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Reload the page to show updated status
+                location.reload();
+            } else {
+                alert(`Error: ${data.error || 'Failed to update user status'}`);
+            }
+        })
+        .catch(error => {
+            console.error('Error toggling user status:', error);
+            alert('Error updating user status');
+        });
+    }
+}
+
+function deleteUser(userId, username) {
+    const confirmMessage = `Are you sure you want to delete user "${username}"? This action cannot be undone.`;
+    
+    if (confirm(confirmMessage)) {
+        fetch(`/delete-user/${userId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Reload the page to show updated user list
+                location.reload();
+            } else {
+                alert(`Error: ${data.error || 'Failed to delete user'}`);
+            }
+        })
+        .catch(error => {
+            console.error('Error deleting user:', error);
+            alert('Error deleting user');
+        });
+    }
+}
+
+// Close dropdowns when clicking outside
+document.addEventListener('click', function(event) {
+    const userMenus = document.querySelectorAll('[id^="user-menu-"]');
+    userMenus.forEach(menu => {
+        if (!menu.contains(event.target) && 
+            !event.target.closest('button[onclick*="toggleUserMenu"]') &&
+            !event.target.closest('[onclick*="openUserProfile"]') &&
+            !event.target.closest('[onclick*="toggleUserStatus"]')) {
+            menu.classList.add('hidden');
+        }
+    });
+});
+</script>
+
+<!-- CSRF Token for AJAX requests -->
+{% csrf_token %}
+{% endblock %}
+
+

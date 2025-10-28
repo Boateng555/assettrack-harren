@@ -1,0 +1,200 @@
+{% extends 'base.html' %}
+
+{% block title %}Send Welcome Pack Email | AssetTrack{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700 mb-8">
+        <div class="px-6 py-5 border-b border-slate-700 flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <button onclick="window.history.back()" class="text-slate-400 hover:text-white transition-colors">
+                    <i data-lucide="arrow-left" class="h-6 w-6"></i>
+                </button>
+                <h2 class="text-lg font-semibold text-white">Send Welcome Pack Email</h2>
+            </div>
+        </div>
+    </div>
+
+    <!-- Email Preview -->
+    <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700 mb-8">
+        <div class="px-6 py-5 border-b border-slate-700">
+            <h3 class="text-lg font-semibold text-white">Email Preview</h3>
+            <p class="text-sm text-slate-400 mt-1">Review the email content before sending</p>
+        </div>
+        
+        <div class="p-6">
+            <!-- Employee Information -->
+            <div class="mb-6">
+                <h4 class="text-md font-medium text-white mb-3">Welcome Pack for {{ welcome_pack.employee.name }}</h4>
+                <div class="bg-slate-700 rounded-lg p-4 space-y-3">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-400 mb-1">Employee</label>
+                            <p class="text-white">{{ welcome_pack.employee.name }} ({{ welcome_pack.employee.department }})</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-400 mb-1">Email</label>
+                            <p class="text-white">{{ welcome_pack.employee_email|default:"Not provided" }}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-400 mb-1">Password</label>
+                            <p class="text-white font-mono bg-slate-600 px-2 py-1 rounded">{{ welcome_pack.employee_password|default:"Not set" }}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-400 mb-1">Start Date</label>
+                            <p class="text-white">{{ welcome_pack.start_date|date:"M d, Y"|default:"Not specified" }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Email Content Preview -->
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-400 mb-2">Email Subject</label>
+                    <p class="text-white font-medium">Welcome to {{ welcome_pack.employee.department }} - Your IT Access Information</p>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-slate-400 mb-2">Email Content Preview</label>
+                    <div class="bg-slate-700 rounded-lg p-4 max-h-64 overflow-y-auto">
+                        <div class="text-white space-y-3">
+                            <p><strong>Dear {{ welcome_pack.employee.name }},</strong></p>
+                            
+                            <p>Welcome to {{ welcome_pack.employee.department }}! We're excited to have you join our team.</p>
+                            
+                            <p><strong>Please see below some information:</strong></p>
+                            
+                            <div class="ml-4 space-y-2">
+                                <p><strong>IT Contact Person:</strong> {{ welcome_pack.it_contact_person|default:"Not specified" }}</p>
+                                <p><strong>IT E-Mail Addresses:</strong> 
+                                    {% if welcome_pack.it_helpdesk_email %}
+                                    <a href="mailto:{{ welcome_pack.it_helpdesk_email }}" class="text-blue-400">{{ welcome_pack.it_helpdesk_email }}</a>
+                                    {% else %}
+                                    Not specified
+                                    {% endif %}
+                                </p>
+                                <p><strong>Phone Number:</strong> {{ welcome_pack.it_phone_number|default:"Not specified" }}</p>
+                                <p><strong>Your Password:</strong> <span class="font-mono bg-slate-600 px-2 py-1 rounded">{{ welcome_pack.employee_password|default:"Not set" }}</span></p>
+                                <p><strong>Your Mail address:</strong> 
+                                    {% if welcome_pack.employee_email %}
+                                    <a href="mailto:{{ welcome_pack.employee_email }}" class="text-blue-400">{{ welcome_pack.employee_email }}</a>
+                                    {% else %}
+                                    Not provided
+                                    {% endif %}
+                                </p>
+                            </div>
+                            
+                            {% if welcome_pack.teams_username or welcome_pack.teams_email %}
+                            <p><strong>Microsoft Teams Information:</strong></p>
+                            <div class="ml-4 space-y-2">
+                                {% if welcome_pack.teams_username %}
+                                <p><strong>Teams Username:</strong> {{ welcome_pack.teams_username }}</p>
+                                {% endif %}
+                                {% if welcome_pack.teams_email %}
+                                <p><strong>Teams Email:</strong> <a href="mailto:{{ welcome_pack.teams_email }}" class="text-blue-400">{{ welcome_pack.teams_email }}</a></p>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                            
+                            {% if welcome_pack.office_location %}
+                            <p><strong>Office Location:</strong> {{ welcome_pack.office_location }}</p>
+                            {% endif %}
+                            
+                            {% if welcome_pack.department_info %}
+                            <p><strong>Department Information:</strong></p>
+                            <div class="ml-4 bg-slate-600 p-3 rounded">
+                                <p class="whitespace-pre-wrap">{{ welcome_pack.department_info }}</p>
+                            </div>
+                            {% endif %}
+                            
+                            <p>If you have any questions or need assistance, please don't hesitate to contact the IT team.</p>
+                            
+                            <p>Best regards,<br>IT Team</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Email Recipients -->
+    <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700 mb-8">
+        <div class="px-6 py-5 border-b border-slate-700">
+            <h3 class="text-lg font-semibold text-white">Email Recipients</h3>
+        </div>
+        
+        <div class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Employee Email -->
+                <div class="border border-slate-600 rounded-lg p-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <h4 class="text-md font-medium text-white">Employee Email</h4>
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {% if welcome_pack.email_sent_to_employee %}bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400{% else %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400{% endif %}">
+                            {% if welcome_pack.email_sent_to_employee %}Sent{% else %}Pending{% endif %}
+                        </span>
+                    </div>
+                    <p class="text-slate-400 text-sm mb-2">Send welcome information to the employee</p>
+                    <p class="text-white font-medium">{{ welcome_pack.employee_email|default:"No email address provided" }}</p>
+                </div>
+                
+                <!-- IT Team Email -->
+                <div class="border border-slate-600 rounded-lg p-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <h4 class="text-md font-medium text-white">IT Team Email</h4>
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {% if welcome_pack.email_sent_to_it %}bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400{% else %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400{% endif %}">
+                            {% if welcome_pack.email_sent_to_it %}Sent{% else %}Pending{% endif %}
+                        </span>
+                    </div>
+                    <p class="text-slate-400 text-sm mb-2">Notify IT team about new employee setup</p>
+                    <p class="text-white font-medium">{{ welcome_pack.it_helpdesk_email|default:"No IT email configured" }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Send Email Form -->
+    <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700">
+        <div class="px-6 py-5 border-b border-slate-700">
+            <h3 class="text-lg font-semibold text-white">Send Email</h3>
+        </div>
+        
+        <form method="POST" class="p-6">
+            {% csrf_token %}
+            
+            <div class="space-y-4">
+                <div class="flex items-center">
+                    <input type="checkbox" id="confirm_send" name="confirm_send" required class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-slate-600 rounded bg-slate-700">
+                    <label for="confirm_send" class="ml-2 text-sm text-slate-300">
+                        I confirm that I want to send this welcome pack email to both the employee and IT team
+                    </label>
+                </div>
+                
+                <div class="bg-yellow-900/20 border border-yellow-600/30 rounded-lg p-4">
+                    <div class="flex">
+                        <i data-lucide="alert-triangle" class="h-5 w-5 text-yellow-400 mr-3 mt-0.5"></i>
+                        <div>
+                            <h4 class="text-sm font-medium text-yellow-400">Important Notice</h4>
+                            <p class="text-sm text-yellow-300 mt-1">
+                                This will send the welcome pack information including the temporary password to both the employee and IT team. 
+                                Make sure all information is correct before sending.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex justify-end space-x-3 mt-6">
+                <button type="button" onclick="window.history.back()" class="px-4 py-2 border border-slate-600 rounded-md text-sm font-medium text-slate-300 bg-slate-700 hover:bg-slate-600">
+                    Cancel
+                </button>
+                <button type="submit" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                    <i data-lucide="mail" class="h-4 w-4 mr-2"></i>
+                    Send Welcome Pack Email
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

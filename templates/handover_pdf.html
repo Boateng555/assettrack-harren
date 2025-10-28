@@ -1,0 +1,348 @@
+{% extends 'base.html' %}
+
+{% block title %}Handover {{ handover.handover_id }} - PDF | AssetTrack{% endblock %}
+
+{% block content %}
+<style>
+    @media print {
+        @page {
+            margin: 0.25in;
+            size: A4;
+        }
+        
+        body { 
+            margin: 0; 
+            padding: 0; 
+            font-size: 10px !important;
+            line-height: 1.3 !important;
+            background: white !important;
+            color: black !important;
+        }
+        
+        /* Hide header completely */
+        header, .bg-slate-900, nav, .navbar {
+            display: none !important;
+        }
+        
+        /* Hide any navigation elements */
+        .navigation, .nav, .header {
+            display: none !important;
+        }
+        
+        .no-print { display: none !important; }
+        .print-only { display: block !important; }
+        .bg-slate-800 { background: white !important; color: black !important; border: 1px solid #000 !important; }
+        .text-white { color: black !important; }
+        .text-slate-400 { color: #333 !important; }
+        .border-slate-700 { border-color: #000 !important; }
+        .bg-slate-700 { background: #f5f5f5 !important; }
+        
+        /* Full width layout */
+        .max-w-4xl { max-width: none !important; width: 100% !important; }
+        .mx-auto { margin-left: 0 !important; margin-right: 0 !important; }
+        .px-4, .px-6, .px-8 { padding-left: 15px !important; padding-right: 15px !important; }
+        .py-8 { padding-top: 10px !important; padding-bottom: 10px !important; }
+        
+        /* Balanced vertical spacing */
+        .space-y-8 > * + * { margin-top: 12px !important; }
+        .space-y-4 > * + * { margin-top: 8px !important; }
+        .space-y-6 > * + * { margin-top: 10px !important; }
+        
+        /* Better font sizes for full page */
+        .text-3xl { font-size: 16px !important; }
+        .text-xl { font-size: 13px !important; }
+        .text-lg { font-size: 12px !important; }
+        .text-sm { font-size: 9px !important; }
+        
+        /* Balanced padding for height */
+        .py-6 { padding-top: 10px !important; padding-bottom: 10px !important; }
+        .py-4 { padding-top: 8px !important; padding-bottom: 8px !important; }
+        .p-4 { padding: 8px !important; }
+        
+        /* Full width grid layouts */
+        .grid { display: grid !important; }
+        .grid-cols-1.md\:grid-cols-2 { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
+        .grid-cols-1.md\:grid-cols-3 { grid-template-columns: 1fr 1fr 1fr !important; gap: 8px !important; }
+        
+        /* Balanced signature images */
+        img { max-height: 40px !important; max-width: 120px !important; }
+        
+        /* Remove shadows and rounded corners */
+        .shadow-lg { box-shadow: none !important; }
+        .rounded-xl, .rounded-lg { border-radius: 0 !important; }
+        
+        /* Balanced margins */
+        .mb-2 { margin-bottom: 5px !important; }
+        .mb-3 { margin-bottom: 6px !important; }
+        .mb-4 { margin-bottom: 10px !important; }
+        .mt-2 { margin-top: 5px !important; }
+        .mt-3 { margin-top: 6px !important; }
+        .mt-6 { margin-top: 10px !important; }
+        .mt-12 { margin-top: 15px !important; }
+        .pt-8 { padding-top: 12px !important; }
+        .pb-2 { padding-bottom: 5px !important; }
+        
+        /* Hide icons */
+        [data-lucide] { display: none !important; }
+        
+        /* Ensure single page */
+        .bg-slate-800 { page-break-inside: avoid !important; }
+        
+        /* Balanced signature section spacing */
+        .grid-cols-1.md\:grid-cols-2.gap-4 { gap: 10px !important; }
+        .grid-cols-1.md\:grid-cols-2.gap-4 > div { margin-bottom: 10px !important; }
+        
+        /* Reduce border spacing */
+        .border-b { border-bottom-width: 1px !important; }
+        
+        /* Balanced label spacing */
+        .mb-1 { margin-bottom: 4px !important; }
+        
+        /* Balanced section spacing */
+        .space-y-8 > div { margin-bottom: 12px !important; }
+        
+        /* Full width content */
+        .w-full { width: 100% !important; }
+        
+        /* Better asset layout with balanced height */
+        .bg-slate-700 { padding: 10px !important; }
+        .bg-slate-700 .grid { gap: 6px !important; }
+        
+        /* Balanced height for sections */
+        .border-b.border-slate-700 { padding-bottom: 8px !important; }
+        
+        /* Balanced space in signature boxes */
+        .bg-slate-700.rounded-lg.p-4 { padding: 12px !important; }
+        
+        /* Balanced footer spacing */
+        .mt-12.pt-8 { margin-top: 18px !important; padding-top: 15px !important; }
+    }
+    
+    .print-only { display: none; }
+</style>
+
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Print Header -->
+    <div class="no-print mb-8">
+        <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700">
+            <div class="px-6 py-5 border-b border-slate-700 flex items-center justify-between">
+                <div>
+                    <h2 class="text-lg font-semibold text-white">Handover {{ handover.handover_id }} - PDF</h2>
+                    <p class="text-slate-400 mt-1">Print-friendly version</p>
+                </div>
+                <div class="flex space-x-3">
+                    <button onclick="window.print()" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                        <i data-lucide="printer" class="h-4 w-4 inline mr-2"></i>
+                        Print PDF
+                    </button>
+                    <a href="{% url 'assets:handover_detail' handover.id %}" class="px-4 py-2 border border-slate-600 rounded-md text-sm font-medium text-slate-300 hover:bg-slate-700">
+                        Back to Handover
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PDF Content -->
+    <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700">
+        <!-- Header with space for logo -->
+        <div class="px-8 py-6 border-b border-slate-700 text-center">
+            <!-- Logo space - you can add your logo here -->
+            <div class="mb-4" style="height: 60px; display: flex; align-items: center; justify-content: center;">
+                <!-- Add your logo image here -->
+                <!-- <img src="/path/to/your/logo.png" alt="Company Logo" style="max-height: 50px; max-width: 200px;"> -->
+            </div>
+            
+            <h1 class="text-3xl font-bold text-white mb-2">Harren Group Asset Handover Document</h1>
+            <p class="text-slate-400">Handover ID: {{ handover.handover_id }}</p>
+            <p class="text-slate-400">Generated on: {{ handover.created_at|date:"F d, Y \a\t g:i A" }}</p>
+        </div>
+
+        <div class="px-8 py-6 space-y-8">
+            <!-- Employee Information -->
+            <div>
+                <h2 class="text-xl font-semibold text-white mb-4 border-b border-slate-700 pb-2">Employee Information</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-1">Employee Name</label>
+                        <p class="text-white font-medium">{{ handover.employee.name }}</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-1">Department</label>
+                        <p class="text-white">{{ handover.employee.department }}</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-1">Email</label>
+                        <p class="text-white">{{ handover.employee.email }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Assets List -->
+            <div>
+                <h2 class="text-xl font-semibold text-white mb-4 border-b border-slate-700 pb-2">Assigned Assets</h2>
+                {% if handover.assets.all %}
+                    <div class="space-y-4">
+                        {% for asset in handover.assets.all %}
+                        <div class="bg-slate-700 rounded-lg p-4">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-400 mb-1">Asset Name</label>
+                                    <p class="text-white font-medium">{{ asset.name }}</p>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-400 mb-1">Serial Number</label>
+                                    <p class="text-white">{{ asset.serial_number }}</p>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-400 mb-1">Type</label>
+                                    <p class="text-white">{{ asset.get_asset_type_display }}</p>
+                                </div>
+                                {% if asset.model %}
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-400 mb-1">Model</label>
+                                    <p class="text-white">{{ asset.model }}</p>
+                                </div>
+                                {% endif %}
+                                {% if asset.manufacturer %}
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-400 mb-1">Manufacturer</label>
+                                    <p class="text-white">{{ asset.manufacturer }}</p>
+                                </div>
+                                {% endif %}
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-400 mb-1">Status</label>
+                                    <p class="text-white">{{ asset.get_status_display }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-slate-400 text-center py-4">No assets assigned to this handover.</p>
+                {% endif %}
+            </div>
+
+            <!-- Handover Details -->
+            <div>
+                <h2 class="text-xl font-semibold text-white mb-4 border-b border-slate-700 pb-2">Handover Details</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-1">Handover Mode</label>
+                        <p class="text-white">{{ handover.mode }}</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-1">Status</label>
+                        <p class="text-white">{{ handover.status }}</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-1">Created By</label>
+                        <p class="text-white">{{ handover.created_by.get_full_name|default:handover.created_by.username }}</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-1">Created Date</label>
+                        <p class="text-white">{{ handover.created_at|date:"F d, Y g:i A" }}</p>
+                    </div>
+                    {% if handover.completed_at %}
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-1">Completed Date</label>
+                        <p class="text-white">{{ handover.completed_at|date:"F d, Y g:i A" }}</p>
+                    </div>
+                    {% endif %}
+                    {% if handover.notes %}
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-slate-400 mb-1">Notes</label>
+                        <p class="text-white">{{ handover.notes }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Signatures Section -->
+            <div>
+                <h2 class="text-xl font-semibold text-white mb-4 border-b border-slate-700 pb-2">Signatures & Acknowledgments</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Employee Signature -->
+                    <div>
+                        <h3 class="text-lg font-medium text-white mb-3">Employee Signature</h3>
+                        {% if handover.employee_signature %}
+                            <div class="bg-slate-700 rounded-lg p-4 border border-slate-600">
+                                <img src="{{ handover.employee_signature }}" alt="Employee Signature" class="w-full h-20 object-contain bg-white rounded">
+                                <p class="text-sm text-slate-400 mt-2">Signed by: {{ handover.employee.name }}</p>
+                            </div>
+                        {% else %}
+                            <div class="bg-slate-700 rounded-lg p-4 border-2 border-dashed border-slate-600">
+                                <p class="text-slate-400 text-center">No signature provided</p>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- IT Signature -->
+                    <div>
+                        <h3 class="text-lg font-medium text-white mb-3">IT Staff Signature</h3>
+                        {% if handover.it_signature %}
+                            <div class="bg-slate-700 rounded-lg p-4 border border-slate-600">
+                                <img src="{{ handover.it_signature }}" alt="IT Signature" class="w-full h-20 object-contain bg-white rounded">
+                                <p class="text-sm text-slate-400 mt-2">Signed by: IT Staff</p>
+                            </div>
+                        {% else %}
+                            <div class="bg-slate-700 rounded-lg p-4 border-2 border-dashed border-slate-600">
+                                <p class="text-slate-400 text-center">No signature provided</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Acknowledgment -->
+                <div class="mt-6">
+                    <h3 class="text-lg font-medium text-white mb-3">Employee Acknowledgment</h3>
+                    <div class="bg-slate-700 rounded-lg p-4">
+                        {% if handover.employee_acknowledgment %}
+                            <div class="flex items-center text-green-400">
+                                <i data-lucide="check-circle" class="h-6 w-6 mr-3"></i>
+                                <span class="font-medium">Acknowledged by {{ handover.employee.name }}</span>
+                            </div>
+                        {% else %}
+                            <div class="flex items-center text-slate-400">
+                                <i data-lucide="x-circle" class="h-6 w-6 mr-3"></i>
+                                <span>Not acknowledged</span>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="mt-12 pt-8 border-t border-slate-700">
+                <div class="text-center text-slate-400 text-sm">
+                    <p>This document was generated by AssetTrack on {{ handover.created_at|date:"F d, Y \a\t g:i A" }}</p>
+                    <p>Handover ID: {{ handover.handover_id }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block footer %}
+<!-- Empty footer to override the base template's copyright footer -->
+<footer class="bg-slate-900 border-t border-slate-800 no-print">
+    <div class="w-full px-4 sm:px-6 lg:px-8 py-6">
+        <div class="md:flex md:items-center md:justify-between">
+            <div class="flex justify-center md:order-2 space-x-6">
+                <a href="#" class="text-slate-400 hover:text-slate-300">
+                    <span class="sr-only">Settings</span>
+                    <i data-lucide="settings" class="h-6 w-6"></i>
+                </a>
+            </div>
+            <div class="mt-8 md:mt-0 md:order-1">
+                <p class="text-center text-base text-slate-400">
+                    <!-- Copyright removed for PDF -->
+                </p>
+            </div>
+        </div>
+    </div>
+</footer>
+{% endblock %}
+
+

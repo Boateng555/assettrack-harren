@@ -1,0 +1,414 @@
+{% extends 'base.html' %}
+{% load employee_filters %}
+
+{% block title %}{{ department }} Assets | AssetTrack{% endblock %}
+
+{% block content %}
+<div class="w-full px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700 mb-8">
+        <div class="px-6 py-5 border-b border-slate-700 flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <div class="p-3 rounded-lg bg-blue-900/20 text-blue-400">
+                    <i data-lucide="building" class="h-6 w-6"></i>
+                </div>
+                <div>
+                    <h2 class="text-lg font-semibold text-white">{{ department }} Assets</h2>
+                    <p class="text-sm text-slate-400">Assets assigned to {{ department }} employees</p>
+                </div>
+            </div>
+            <div class="flex space-x-3">
+                <a href="{% url 'assets:assigned_assets' %}" class="inline-flex items-center px-4 py-2 border border-slate-600 text-sm font-medium rounded-md text-slate-300 bg-slate-700 hover:bg-slate-600">
+                    <i data-lucide="arrow-left" class="mr-2 h-4 w-4"></i>
+                    Back to Assigned Assets
+                </a>
+                <button onclick="openAddAssetModal()" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <i data-lucide="plus" class="mr-2 h-4 w-4"></i>
+                    Add Asset
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-slate-800 rounded-xl p-6 shadow-lg border border-slate-700">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-slate-400">Total Assets</p>
+                    <p class="mt-1 text-3xl font-semibold text-white">{{ total_assets }}</p>
+                </div>
+                <div class="p-3 rounded-lg bg-blue-900/20 text-blue-400">
+                    <i data-lucide="package" class="h-6 w-6"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-slate-800 rounded-xl p-6 shadow-lg border border-slate-700">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-slate-400">Assigned</p>
+                    <p class="mt-1 text-3xl font-semibold text-white">{{ assigned_assets }}</p>
+                </div>
+                <div class="p-3 rounded-lg bg-green-900/20 text-green-400">
+                    <i data-lucide="user-check" class="h-6 w-6"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-slate-800 rounded-xl p-6 shadow-lg border border-slate-700">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-slate-400">Under Maintenance</p>
+                    <p class="mt-1 text-3xl font-semibold text-white">{{ maintenance_assets }}</p>
+                </div>
+                <div class="p-3 rounded-lg bg-yellow-900/20 text-yellow-400">
+                    <i data-lucide="wrench" class="h-6 w-6"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Asset Type Distribution -->
+    {% if asset_type_stats %}
+    <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700 mb-8">
+        <div class="px-6 py-5 border-b border-slate-700">
+            <h3 class="text-lg font-semibold text-white">Asset Type Distribution</h3>
+        </div>
+        <div class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {% for stat in asset_type_stats %}
+                <div class="flex items-center justify-between p-4 bg-slate-700 rounded-lg">
+                    <div class="flex items-center">
+                        <div class="w-3 h-3 rounded-full 
+                            {% if forloop.counter == 1 %}bg-blue-500
+                            {% elif forloop.counter == 2 %}bg-green-500
+                            {% elif forloop.counter == 3 %}bg-yellow-500
+                            {% elif forloop.counter == 4 %}bg-red-500
+                            {% else %}bg-purple-500{% endif %} mr-3">
+                        </div>
+                        <span class="text-white font-medium">{{ stat.asset_type|title }}</span>
+                    </div>
+                    <span class="text-slate-400 font-semibold">{{ stat.count }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Search and Filters -->
+    <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700 mb-8">
+        <div class="px-6 py-4">
+            <form method="GET" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <input type="text" name="search" value="{{ search_query|default:'' }}" placeholder="Search {{ department }} assets..." 
+                           class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <select name="asset_type" class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">All Asset Types</option>
+                        <option value="laptop" {% if asset_type_filter == 'laptop' %}selected{% endif %}>Laptop</option>
+                        <option value="desktop" {% if asset_type_filter == 'desktop' %}selected{% endif %}>Desktop</option>
+                        <option value="monitor" {% if asset_type_filter == 'monitor' %}selected{% endif %}>Monitor</option>
+                        <option value="phone" {% if asset_type_filter == 'phone' %}selected{% endif %}>Phone</option>
+                        <option value="tablet" {% if asset_type_filter == 'tablet' %}selected{% endif %}>Tablet</option>
+                        <option value="keyboard" {% if asset_type_filter == 'keyboard' %}selected{% endif %}>Keyboard</option>
+                        <option value="mouse" {% if asset_type_filter == 'mouse' %}selected{% endif %}>Mouse</option>
+                        <option value="headphones" {% if asset_type_filter == 'headphones' %}selected{% endif %}>Headphones</option>
+                        <option value="other" {% if asset_type_filter == 'other' %}selected{% endif %}>Other</option>
+                    </select>
+                </div>
+                <div class="flex gap-2">
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <i data-lucide="search" class="h-4 w-4"></i>
+                    </button>
+                    <a href="{% url 'assets:department_assets' department=department %}" class="px-4 py-2 bg-slate-600 text-white rounded-md hover:bg-slate-700">
+                        <i data-lucide="refresh-cw" class="h-4 w-4"></i>
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Assets Table -->
+    <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700">
+        <div class="px-6 py-5 border-b border-slate-700">
+            <h3 class="text-lg font-semibold text-white">{{ department }} Assets List</h3>
+        </div>
+        
+        <!-- Asset Table -->
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-700">
+                <thead class="bg-slate-800">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Asset</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Type</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                            <div class="flex items-center">
+                                Health
+                                <div class="ml-1 relative group">
+                                    <i data-lucide="help-circle" class="h-3 w-3 text-slate-500 cursor-help"></i>
+                                    <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-slate-900 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
+                                        <div class="font-medium mb-1">Asset Health Score</div>
+                                        <div>• 100%: New (0-1 year)</div>
+                                        <div>• 85%: Good (1-2 years)</div>
+                                        <div>• 70%: Fair (2-3 years)</div>
+                                        <div>• 50%: Poor (3+ years)</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Status</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Assigned To</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Last Updated</th>
+                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-slate-800 divide-y divide-slate-700">
+                    {% for asset in assets %}
+                    <tr class="hover:bg-slate-700/50 transition-colors cursor-pointer" onclick="handleRowClick(event, '{{ asset.id }}')">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div>
+                                <div class="text-sm font-medium text-white">{{ asset.name }}</div>
+                                <div class="text-sm text-slate-400">{{ asset.model|default:"No model" }}</div>
+                                <div class="text-xs text-slate-500">{{ asset.serial_number }}</div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+                                {{ asset.get_asset_type_display }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <button onclick="showAssetHealthDetails('{{ asset.name }}', {{ asset.health_score }}, '{{ asset|health_reference_date|date:"M d, Y"|default:"Not specified" }}', '{{ asset.asset_type }}')" class="flex items-center hover:bg-slate-700/50 rounded px-2 py-1 transition-colors" onclick="event.stopPropagation()">
+                                <div class="w-16 bg-slate-700 rounded-full h-2 mr-2">
+                                    <div class="h-2 rounded-full {% if asset.health_score >= 80 %}bg-green-500{% elif asset.health_score >= 60 %}bg-yellow-500{% else %}bg-red-500{% endif %}" 
+                                         style="width: {{ asset.health_score }}%"></div>
+                                </div>
+                                <span class="text-xs text-slate-400">{{ asset.health_score }}%</span>
+                                <i data-lucide="info" class="h-3 w-3 text-slate-500 ml-1"></i>
+                            </button>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                {% if asset.status == 'available' %}bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400
+                                {% elif asset.status == 'assigned' %}bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400
+                                {% elif asset.status == 'maintenance' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400
+                                {% else %}bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400{% endif %}">
+                                {{ asset.get_status_display }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if asset.assigned_to %}
+                                <div class="flex items-center">
+                                    <img class="h-8 w-8 rounded-full mr-3" src="{{ asset.assigned_to|safe_employee_avatar_url }}" alt="{{ asset.assigned_to.name }}" >
+                                    <div class="flex flex-col">
+                                        <span class="text-white font-medium text-sm">{{ asset.assigned_to.name|truncatechars:15 }}</span>
+                                        <span class="text-slate-500 text-xs">{{ asset.assigned_to.email|truncatechars:20 }}</span>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <div class="flex items-center">
+                                    <div class="h-8 w-8 rounded-full bg-slate-600 flex items-center justify-center mr-3">
+                                        <i data-lucide="user-x" class="h-4 w-4 text-slate-400"></i>
+                                    </div>
+                                    <span class="text-slate-500">Unassigned</span>
+                                </div>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-white">{{ asset.updated_at|date:"M d, Y H:i" }}</div>
+                            <div class="text-xs text-slate-400">{{ asset.updated_at|timesince }} ago</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <button onclick="editAsset('{{ asset.id }}')" class="text-blue-500 hover:text-blue-700 mr-3" title="Edit Asset" onclick="event.stopPropagation()">
+                                <i data-lucide="edit" class="h-4 w-4"></i>
+                            </button>
+                            <button onclick="viewAsset('{{ asset.id }}')" class="text-green-500 hover:text-green-700 mr-3" title="View Details" onclick="event.stopPropagation()">
+                                <i data-lucide="eye" class="h-4 w-4"></i>
+                            </button>
+                            {% if request.user.is_staff or request.user.is_superuser or asset.can_delete %}
+                                <button onclick="deleteAsset('{{ asset.id }}')" class="text-red-500 hover:text-red-700" title="Delete Asset" onclick="event.stopPropagation()">
+                                    <i data-lucide="trash-2" class="h-4 w-4"></i>
+                                </button>
+                            {% else %}
+                                <button class="text-slate-400 cursor-not-allowed" title="Delete not allowed - Admin only" onclick="event.stopPropagation()">
+                                    <i data-lucide="trash-2" class="h-4 w-4"></i>
+                                </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="px-6 py-4 text-center text-slate-400">
+                            <div class="flex flex-col items-center">
+                                <i data-lucide="building" class="h-12 w-12 text-blue-500 mb-4"></i>
+                                <p class="text-lg font-medium">No assets found for {{ department }}</p>
+                                <p class="text-sm">No assets are currently assigned to {{ department }} employees</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        {% if assets.has_other_pages %}
+        <div class="px-6 py-4 border-t border-slate-700 flex items-center justify-between">
+            <div class="text-sm text-slate-400">
+                Showing <span class="font-medium">{{ assets.start_index }}</span> to <span class="font-medium">{{ assets.end_index }}</span> of <span class="font-medium">{{ assets.paginator.count }}</span> {{ department }} assets
+            </div>
+            <div class="flex space-x-2">
+                {% if assets.has_previous %}
+                <a href="?page={{ assets.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if asset_type_filter %}&asset_type={{ asset_type_filter }}{% endif %}" class="relative inline-flex items-center px-3 py-1.5 border border-slate-700 text-sm font-medium rounded-md text-slate-400 bg-slate-800 hover:bg-slate-700">
+                    Previous
+                </a>
+                {% endif %}
+                {% if assets.has_next %}
+                <a href="?page={{ assets.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if asset_type_filter %}&asset_type={{ asset_type_filter }}{% endif %}" class="relative inline-flex items-center px-3 py-1.5 border border-slate-700 text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                    Next
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Health Info Modal -->
+<div id="healthInfoModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700 max-w-md w-full">
+            <div class="px-6 py-4 border-b border-slate-700 flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-white">Asset Health Details</h3>
+                <button onclick="closeHealthInfo()" class="text-slate-400 hover:text-white">
+                    <i data-lucide="x" class="h-5 w-5"></i>
+                </button>
+            </div>
+            <div class="px-6 py-6">
+                <div class="space-y-4">
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-green-400 mb-2" id="healthScore">85%</div>
+                        <div class="text-lg text-white font-medium mb-1" id="assetName">Asset Name</div>
+                        <div class="text-slate-400 text-sm" id="assetType">Asset Type</div>
+                    </div>
+                    
+                    <div class="bg-slate-700/50 rounded-lg p-4">
+                        <div class="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <div class="text-slate-400">Health Status</div>
+                                <div class="text-white font-medium" id="healthStatus">Good</div>
+                            </div>
+                            <div>
+                                <div class="text-slate-400">Purchase Date</div>
+                                <div class="text-white font-medium" id="purchaseDate">Jan 15, 2023</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="p-3 bg-blue-900/20 border border-blue-700 rounded-lg">
+                        <div class="flex items-start">
+                            <i data-lucide="info" class="h-4 w-4 text-blue-400 mr-2 mt-0.5"></i>
+                            <div class="text-sm text-blue-300">
+                                <div class="font-medium mb-1">Recommendation:</div>
+                                <div id="recommendation">Asset is in good condition. Monitor for any issues.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-slate-700 flex justify-end">
+                <button onclick="closeHealthInfo()" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Handle row clicks for asset table
+function handleRowClick(event, assetId) {
+    // Don't trigger if clicking on buttons or interactive elements
+    if (event.target.closest('button') || event.target.closest('a')) {
+        return;
+    }
+    
+    // Navigate to asset detail page
+    window.location.href = `/assets/${assetId}/`;
+}
+
+// Asset action functions
+function editAsset(assetId) {
+    window.location.href = `/assets/${assetId}/edit/`;
+}
+
+function viewAsset(assetId) {
+    window.location.href = `/assets/${assetId}/`;
+}
+
+function deleteAsset(assetId) {
+    if (confirm('Are you sure you want to delete this asset?')) {
+        window.location.href = `/assets/${assetId}/delete/`;
+    }
+}
+
+
+
+// Health Info Modal Functions
+function showHealthInfo() {
+    const modal = document.getElementById('healthInfoModal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+function closeHealthInfo() {
+    const modal = document.getElementById('healthInfoModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+}
+
+// Asset-specific health details
+function showAssetHealthDetails(assetName, healthScore, purchaseDate, assetType) {
+    let healthStatus, healthColor, recommendation;
+    
+    if (healthScore >= 80) {
+        healthStatus = 'Excellent';
+        healthColor = 'text-green-400';
+        recommendation = 'Asset is in excellent condition. Continue regular maintenance.';
+    } else if (healthScore >= 60) {
+        healthStatus = 'Good';
+        healthColor = 'text-yellow-400';
+        recommendation = 'Asset is in good condition. Monitor for any issues.';
+    } else {
+        healthStatus = 'Needs Attention';
+        healthColor = 'text-red-400';
+        recommendation = 'Asset may need maintenance or replacement soon.';
+    }
+    
+    const modal = document.getElementById('healthInfoModal');
+    const modalContent = modal.querySelector('.bg-slate-800');
+    
+    // Update modal content
+    document.getElementById('healthScore').textContent = healthScore + '%';
+    document.getElementById('healthScore').className = `text-3xl font-bold ${healthColor} mb-2`;
+    document.getElementById('assetName').textContent = assetName;
+    document.getElementById('assetType').textContent = assetType;
+    document.getElementById('healthStatus').textContent = healthStatus;
+    document.getElementById('purchaseDate').textContent = purchaseDate;
+    document.getElementById('recommendation').textContent = recommendation;
+    
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+// Close health modal when clicking outside
+document.getElementById('healthInfoModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeHealthInfo();
+    }
+});
+</script>
+{% endblock %}

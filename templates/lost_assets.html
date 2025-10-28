@@ -1,0 +1,610 @@
+{% extends 'base.html' %}
+{% load employee_filters %}
+
+{% block title %}Lost Assets | AssetTrack{% endblock %}
+
+{% block content %}
+<div class="w-full px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700 mb-8">
+        <div class="px-6 py-5 border-b border-slate-700 flex items-center justify-between">
+            <div>
+                <h2 class="text-lg font-semibold text-white">Lost Assets</h2>
+                <p class="text-slate-400 mt-1">Assets marked as lost or missing</p>
+            </div>
+            <div class="flex space-x-3">
+                <a href="{% url 'assets:assets' %}" class="inline-flex items-center px-4 py-2 border border-slate-600 text-sm font-medium rounded-md text-slate-300 bg-slate-700 hover:bg-slate-600">
+                    <i data-lucide="arrow-left" class="mr-2 h-4 w-4"></i>
+                    Back to Assets
+                </a>
+                <button onclick="openAddMissingAssetModal()" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                    <i data-lucide="alert-triangle" class="mr-2 h-4 w-4"></i>
+                    Add Missing Asset
+                </button>
+            </div>
+        </div>
+        
+        <!-- Help Message -->
+        {% if total_lost == 0 %}
+        <div class="px-6 py-4 bg-blue-900/20 border-l-4 border-blue-500">
+            <div class="flex items-start">
+                <i data-lucide="info" class="h-5 w-5 text-blue-400 mr-3 mt-0.5"></i>
+                <div class="text-sm text-blue-300">
+                    <div class="font-medium mb-1">How to mark assets as lost:</div>
+                    <div>• Go to the main <a href="{% url 'assets:assets' %}" class="underline hover:text-blue-200">Assets page</a></div>
+                    <div>• Find the asset you want to mark as lost</div>
+                                            <div>• Click the Actions column to manage your assets</div>
+                    <div>• Change the status to "lost"</div>
+                    <div>• The asset will then appear in this Lost Assets section</div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700 p-6 cursor-pointer hover:bg-slate-700 transition-colors" onclick="showAllLostAssets()">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-8 h-8 bg-red-900/20 rounded-lg flex items-center justify-center">
+                        <i data-lucide="alert-triangle" class="h-5 w-5 text-red-400"></i>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-slate-400">Total Lost</p>
+                    <p class="text-2xl font-semibold text-white">{{ total_lost }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700 p-6 cursor-pointer hover:bg-slate-700 transition-colors" onclick="showAssignedLost()">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-8 h-8 bg-blue-900/20 rounded-lg flex items-center justify-center">
+                        <i data-lucide="user-check" class="h-5 w-5 text-blue-400"></i>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-slate-400">Assigned</p>
+                    <p class="text-2xl font-semibold text-white">{{ assigned_lost }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700 p-6 cursor-pointer hover:bg-slate-700 transition-colors" onclick="showUnassignedLost()">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-8 h-8 bg-slate-900/20 rounded-lg flex items-center justify-center">
+                        <i data-lucide="user-x" class="h-5 w-5 text-slate-400"></i>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-slate-400">Unassigned</p>
+                    <p class="text-2xl font-semibold text-white">{{ unassigned_lost }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- Search and Filters -->
+    <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700 mb-8">
+        <div class="px-6 py-4">
+            <form method="GET" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <input type="text" name="search" value="{{ search_query|default:'' }}" placeholder="Search lost assets..." 
+                           class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <select name="asset_type" class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">All Asset Types</option>
+                        <option value="laptop" {% if asset_type_filter == 'laptop' %}selected{% endif %}>Laptop</option>
+                        <option value="desktop" {% if asset_type_filter == 'desktop' %}selected{% endif %}>Desktop</option>
+                        <option value="monitor" {% if asset_type_filter == 'monitor' %}selected{% endif %}>Monitor</option>
+                        <option value="phone" {% if asset_type_filter == 'phone' %}selected{% endif %}>Phone</option>
+                        <option value="tablet" {% if asset_type_filter == 'tablet' %}selected{% endif %}>Tablet</option>
+                        <option value="accessory" {% if asset_type_filter == 'accessory' %}selected{% endif %}>Accessory</option>
+                        <option value="other" {% if asset_type_filter == 'other' %}selected{% endif %}>Other</option>
+                    </select>
+                </div>
+                <div class="flex space-x-2">
+                    <button type="submit" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <i data-lucide="search" class="h-4 w-4 mr-2 inline"></i>
+                        Search
+                    </button>
+                    <a href="{% url 'assets:lost_assets' %}" class="px-4 py-2 border border-slate-600 text-slate-300 rounded-md hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500">
+                        <i data-lucide="x" class="h-4 w-4"></i>
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Lost Assets Table -->
+    <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700">
+        <div class="px-6 py-5 border-b border-slate-700">
+            <h3 class="text-lg font-semibold text-white">Lost Assets List</h3>
+        </div>
+        
+        <!-- Asset Table -->
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-700">
+                <thead class="bg-slate-800">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Asset</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Type</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Health</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Assigned To</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Last Updated</th>
+                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-slate-800 divide-y divide-slate-700">
+                    {% for asset in assets %}
+                    <tr class="hover:bg-slate-700/50 transition-colors">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div>
+                                <div class="text-sm font-medium text-white">{{ asset.name }}</div>
+                                <div class="text-sm text-slate-400">{{ asset.model|default:"No model" }}</div>
+                                <div class="text-xs text-slate-500">{{ asset.serial_number }}</div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+                                {{ asset.get_asset_type_display }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="w-16 bg-slate-700 rounded-full h-2 mr-2">
+                                    <div class="h-2 rounded-full {% if asset.health_score >= 80 %}bg-green-500{% elif asset.health_score >= 60 %}bg-yellow-500{% else %}bg-red-500{% endif %}" 
+                                         style="width: {{ asset.health_score }}%"></div>
+                                </div>
+                                <span class="text-xs text-slate-400">{{ asset.health_score }}%</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if asset.assigned_to %}
+                                <div class="flex items-center">
+                                    <img class="h-8 w-8 rounded-full mr-3 cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all" src="{{ asset.assigned_to|safe_employee_avatar_url }}" alt="{{ asset.assigned_to.name }}"  onclick="openAvatarModal(this.src, '{{ asset.assigned_to.name }}', '{{ asset.assigned_to.department }} • {{ asset.assigned_to.email }}')">
+                                    <div class="flex flex-col">
+                                        <span class="text-white font-medium text-sm">{{ asset.assigned_to.name|truncatechars:15 }}</span>
+                                        <span class="text-slate-500 text-xs">{{ asset.assigned_to.department|default:"No dept" }}</span>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <div class="flex items-center">
+                                    <div class="h-8 w-8 rounded-full bg-slate-600 flex items-center justify-center mr-3">
+                                        <i data-lucide="user-x" class="h-4 w-4 text-slate-400"></i>
+                                    </div>
+                                    <span class="text-slate-500">Unassigned</span>
+                                </div>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-400">
+                            {{ asset.updated_at|date:"M d, Y H:i" }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <button onclick="markAsFound('{{ asset.id }}', '{{ asset.name }}')" class="text-green-500 hover:text-green-700 mr-3" title="Mark as Found">
+                                <i data-lucide="check-circle" class="h-4 w-4"></i>
+                            </button>
+                            <button onclick="editAsset('{{ asset.id }}')" class="text-blue-500 hover:text-blue-700 mr-3" title="Edit Asset">
+                                <i data-lucide="edit" class="h-4 w-4"></i>
+                            </button>
+                            <button onclick="viewAsset('{{ asset.id }}')" class="text-green-500 hover:text-green-700 mr-3" title="View Details">
+                                <i data-lucide="eye" class="h-4 w-4"></i>
+                            </button>
+                            {% if request.user.is_staff or request.user.is_superuser or asset.can_delete %}
+                                <button onclick="deleteAsset('{{ asset.id }}')" class="text-red-500 hover:text-red-700" title="Delete Asset">
+                                    <i data-lucide="trash-2" class="h-4 w-4"></i>
+                                </button>
+                            {% else %}
+                                <button class="text-slate-400 cursor-not-allowed" title="Delete not allowed - Admin only">
+                                    <i data-lucide="trash-2" class="h-4 w-4"></i>
+                                </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="px-6 py-4 text-center text-slate-400">
+                            {% if search_query or asset_type_filter %}
+                                No lost assets found matching your criteria.
+                            {% else %}
+                                No assets currently marked as lost.
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        {% if assets.has_other_pages %}
+        <div class="px-6 py-4 border-t border-slate-700 flex items-center justify-between">
+            <div class="text-sm text-slate-400">
+                Showing {{ assets.start_index }} to {{ assets.end_index }} of {{ assets.paginator.count }} lost assets
+            </div>
+            <div class="flex space-x-2">
+                {% if assets.has_previous %}
+                <a href="?page={{ assets.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if asset_type_filter %}&asset_type={{ asset_type_filter }}{% endif %}" 
+                   class="px-3 py-2 border border-slate-600 text-slate-300 rounded-md hover:bg-slate-700">
+                    Previous
+                </a>
+                {% endif %}
+                
+                {% if assets.has_next %}
+                <a href="?page={{ assets.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if asset_type_filter %}&asset_type={{ asset_type_filter }}{% endif %}" 
+                   class="px-3 py-2 border border-slate-600 text-slate-300 rounded-md hover:bg-slate-700">
+                    Next
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Add Asset Modal (copied from main assets template) -->
+<div id="addAssetModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-slate-800 rounded-lg shadow-xl max-w-2xl w-full">
+            <div class="px-6 py-4 border-b border-slate-700 flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-white">Add Missing Asset</h3>
+                <button onclick="closeAddAssetModal()" class="text-slate-400 hover:text-white">
+                    <i data-lucide="x" class="h-6 w-6"></i>
+                </button>
+            </div>
+            
+            <form method="POST" action="{% url 'assets:add_asset' %}">
+                {% csrf_token %}
+                <div class="px-6 py-4">
+                    <!-- Search Existing Assets Section -->
+                    <div class="mb-6 p-4 bg-slate-700/50 rounded-lg border border-slate-600">
+                        <h4 class="text-md font-medium text-white mb-3">Search Existing Assets</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-400 mb-2">Search by Name/Serial</label>
+                                <input type="text" id="assetSearchInput" placeholder="Type to search assets..." 
+                                       class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-400 mb-2">Employee Name</label>
+                                <input type="text" id="employeeSearchInput" placeholder="Search by employee..." 
+                                       class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div class="flex items-end">
+                                <button type="button" onclick="searchExistingAssets()" class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <i data-lucide="search" class="h-4 w-4 mr-2 inline"></i>
+                                    Search
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Search Results -->
+                        <div id="searchResults" class="hidden mt-4">
+                            <div class="bg-slate-800 rounded-lg border border-slate-600 max-h-60 overflow-y-auto">
+                                <div id="searchResultsList" class="p-2">
+                                    <!-- Results will be populated here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Divider -->
+                    <div class="mb-6 flex items-center">
+                        <div class="flex-1 border-t border-slate-600"></div>
+                        <span class="px-3 text-sm text-slate-400">OR Add New Asset</span>
+                        <div class="flex-1 border-t border-slate-600"></div>
+                    </div>
+                    
+                    <!-- Asset Details Form -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-400 mb-2">Asset Name</label>
+                            <input type="text" name="name" id="assetName" required 
+                                   class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-400 mb-2">Asset Type</label>
+                            <select name="asset_type" id="assetType" required 
+                                    class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="">Select Type</option>
+                                <option value="laptop">Laptop</option>
+                                <option value="desktop">Desktop</option>
+                                <option value="monitor">Monitor</option>
+                                <option value="keyboard">Keyboard</option>
+                                <option value="mouse">Mouse</option>
+                                <option value="phone">Phone</option>
+                                <option value="tablet">Tablet</option>
+                                <option value="headphones">Headphones</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-400 mb-2">Serial Number</label>
+                            <input type="text" name="serial_number" id="serialNumber" required 
+                                   class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-400 mb-2">Model</label>
+                            <input type="text" name="model" id="assetModel" 
+                                   class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-400 mb-2">Manufacturer</label>
+                            <input type="text" name="manufacturer" id="manufacturer" 
+                                   class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-400 mb-2">Purchase Date</label>
+                            <input type="date" name="purchase_date" id="purchaseDate" 
+                                   class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-400 mb-2">Status</label>
+                            <select name="status" id="assetStatus" required 
+                                    class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="lost" selected>Lost</option>
+                                <option value="available">Available</option>
+                                <option value="assigned">Assigned</option>
+                                <option value="maintenance">Maintenance</option>
+                                <option value="retired">Retired</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="px-6 py-4 border-t border-slate-700 flex justify-end space-x-3">
+                    <button type="button" onclick="closeAddAssetModal()" class="px-4 py-2 bg-slate-600 text-white rounded-md hover:bg-slate-700">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">
+                        <i data-lucide="alert-triangle" class="h-4 w-4 mr-2"></i>
+                        Add Missing Asset
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function editAsset(assetId) {
+    window.location.href = '/assets/' + assetId + '/edit/';
+}
+
+function viewAsset(assetId) {
+    window.location.href = '/assets/' + assetId + '/';
+}
+
+
+
+
+
+function deleteAsset(assetId) {
+    if (confirm('Are you sure you want to delete this asset? This action cannot be undone.')) {
+        window.location.href = '/assets/' + assetId + '/delete/';
+    }
+}
+
+function openAddMissingAssetModal() {
+    // Open the add asset modal and pre-select "lost" status
+    const modal = document.getElementById('addAssetModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        // Reset form
+        modal.querySelector('form').reset();
+        // Pre-select "lost" status
+        const statusSelect = modal.querySelector('#assetStatus');
+        if (statusSelect) {
+            statusSelect.value = 'lost';
+        }
+        // Update modal title
+        const modalTitle = modal.querySelector('h3');
+        if (modalTitle) {
+            modalTitle.textContent = 'Add Missing Asset';
+        }
+    } else {
+        // Fallback: redirect to main assets page
+        window.location.href = '/assets/';
+    }
+}
+
+function closeAddAssetModal() {
+    const modal = document.getElementById('addAssetModal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
+
+function showAllLostAssets() {
+    // Clear all filters and show all lost assets
+    window.location.href = '{% url "assets:lost_assets" %}';
+}
+
+function showAssignedLost() {
+    // Show only assigned lost assets
+    alert('Showing assigned lost assets. Use the search/filter to find specific assigned assets.');
+}
+
+function showUnassignedLost() {
+    // Show only unassigned lost assets
+    alert('Showing unassigned lost assets. Use the search/filter to find specific unassigned assets.');
+}
+
+// Asset search functionality
+function searchExistingAssets() {
+    const searchQuery = document.getElementById('assetSearchInput').value;
+    const employeeQuery = document.getElementById('employeeSearchInput').value;
+    
+    if (!searchQuery && !employeeQuery) {
+        alert('Please enter a search term or employee name');
+        return;
+    }
+    
+    // Show loading state
+    const resultsDiv = document.getElementById('searchResults');
+    const resultsList = document.getElementById('searchResultsList');
+    resultsDiv.classList.remove('hidden');
+    resultsList.innerHTML = '<div class="text-center py-4"><i data-lucide="loader-2" class="h-6 w-6 animate-spin mx-auto text-blue-400"></i><p class="text-sm text-slate-400 mt-2">Searching...</p></div>';
+    
+    // Make AJAX request
+    fetch(`/assets/search-for-missing/?search=${encodeURIComponent(searchQuery)}&employee=${encodeURIComponent(employeeQuery)}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.assets && data.assets.length > 0) {
+                displaySearchResults(data.assets);
+            } else {
+                resultsList.innerHTML = '<div class="text-center py-4"><i data-lucide="search" class="h-6 w-6 mx-auto text-slate-400"></i><p class="text-sm text-slate-400 mt-2">No assets found</p></div>';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            resultsList.innerHTML = '<div class="text-center py-4"><i data-lucide="alert-circle" class="h-6 w-6 mx-auto text-red-400"></i><p class="text-sm text-red-400 mt-2">Error searching assets</p></div>';
+        });
+}
+
+function displaySearchResults(assets) {
+    const resultsList = document.getElementById('searchResultsList');
+    
+    let html = '<div class="space-y-2">';
+    assets.forEach(asset => {
+        const healthColor = asset.health_score >= 80 ? 'text-green-400' : 
+                           asset.health_score >= 60 ? 'text-yellow-400' : 'text-red-400';
+        
+        html += `
+            <div class="bg-slate-700 rounded-lg p-3 hover:bg-slate-600 transition-colors">
+                <div class="flex items-center justify-between">
+                    <div class="flex-1">
+                        <div class="flex items-center space-x-3">
+                            <div class="flex-1">
+                                <div class="text-white font-medium">${asset.name}</div>
+                                <div class="text-sm text-slate-400">${asset.serial_number} • ${asset.asset_type}</div>
+                                <div class="text-xs text-slate-500">${asset.model} ${asset.manufacturer ? '• ' + asset.manufacturer : ''}</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-sm text-slate-400">Assigned to:</div>
+                                <div class="text-white font-medium">${asset.assigned_to}</div>
+                                <div class="text-xs text-slate-500">${asset.assigned_to_email}</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between mt-2">
+                            <div class="flex items-center space-x-4">
+                                <span class="px-2 py-1 text-xs rounded-full bg-blue-900/30 text-blue-400">${asset.status}</span>
+                                <span class="text-xs ${healthColor}">Health: ${asset.health_score}%</span>
+                                ${asset.purchase_date ? `<span class="text-xs text-slate-500">Purchased: ${asset.purchase_date}</span>` : ''}
+                            </div>
+                            <button onclick="markAssetAsLost('${asset.id}', '${asset.name}')" 
+                                    class="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition-colors">
+                                <i data-lucide="alert-triangle" class="h-3 w-3 mr-1 inline"></i>
+                                Mark as Lost
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    html += '</div>';
+    
+    resultsList.innerHTML = html;
+}
+
+function markAssetAsLost(assetId, assetName) {
+    if (confirm(`Are you sure you want to mark "${assetName}" as lost?`)) {
+        // Show loading state
+        const button = event.target.closest('button');
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i data-lucide="loader-2" class="h-3 w-3 mr-1 inline animate-spin"></i> Marking...';
+        button.disabled = true;
+        
+        fetch(`/assets/${assetId}/mark-as-lost/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Show success message
+                button.innerHTML = '<i data-lucide="check" class="h-3 w-3 mr-1 inline text-green-400"></i> Marked as Lost';
+                button.classList.remove('bg-red-600', 'hover:bg-red-700');
+                button.classList.add('bg-green-600');
+                
+                // Remove the asset from search results after a delay
+                setTimeout(() => {
+                    const assetDiv = button.closest('.bg-slate-700');
+                    assetDiv.style.opacity = '0.5';
+                    assetDiv.style.pointerEvents = 'none';
+                }, 1000);
+                
+                // Show success message
+                showNotification('Asset marked as lost successfully!', 'success');
+            } else {
+                throw new Error(data.error || 'Failed to mark asset as lost');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            button.innerHTML = originalText;
+            button.disabled = false;
+            showNotification('Error marking asset as lost', 'error');
+        });
+    }
+}
+
+function showNotification(message, type) {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 z-50 px-4 py-2 rounded-md text-white ${
+        type === 'success' ? 'bg-green-600' : 'bg-red-600'
+    }`;
+    notification.textContent = message;
+    
+    document.body.appendChild(notification);
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
+}
+
+// Add keyboard shortcuts for search
+document.addEventListener('DOMContentLoaded', function() {
+    const assetSearchInput = document.getElementById('assetSearchInput');
+    const employeeSearchInput = document.getElementById('employeeSearchInput');
+    
+    if (assetSearchInput) {
+        assetSearchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchExistingAssets();
+            }
+        });
+    }
+    
+    if (employeeSearchInput) {
+        employeeSearchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchExistingAssets();
+            }
+        });
+    }
+    
+    // Close modal when clicking outside
+    const modal = document.getElementById('addAssetModal');
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeAddAssetModal();
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

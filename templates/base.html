@@ -1,0 +1,706 @@
+{% load employee_filters %}
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}AssetTrack | IT Asset Management{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #e2e8f0;
+        }
+        
+        .signature-pad {
+            border: 1px solid #334155;
+            border-radius: 0.5rem;
+            background-color: #1e293b;
+        }
+        
+        .dark .dark\:bg-slate-800 {
+            background-color: #1e293b;
+        }
+        
+        .dark .dark\:border-slate-700 {
+            border-color: #334155;
+        }
+        
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        .animate-bounce {
+            animation: bounce 1s infinite;
+        }
+        
+        .animate-drop-in {
+            animation: dropIn 0.8s ease-out forwards;
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+        
+        @keyframes bounce {
+            0%, 20%, 53%, 80%, 100% {
+                transform: translate3d(0,0,0);
+            }
+            40%, 43% {
+                transform: translate3d(0, -30px, 0);
+            }
+            70% {
+                transform: translate3d(0, -15px, 0);
+            }
+            90% {
+                transform: translate3d(0, -4px, 0);
+            }
+        }
+        
+        @keyframes dropIn {
+            0% {
+                transform: translateX(-50%) translateY(-100px);
+                opacity: 0;
+            }
+            50% {
+                transform: translateX(-50%) translateY(20px);
+                opacity: 0.8;
+            }
+            100% {
+                transform: translateX(-50%) translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        /* Ensure messages are perfectly centered */
+        .message-container {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 9999;
+            min-width: 24rem;
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+                    <!-- Messages -->
+                {% if messages %}
+                <div style="position: fixed; top: 4; left: 50%; transform: translateX(-50%); z-index: 9999; min-width: 24rem;" class="space-y-2">
+                    {% for message in messages %}
+                    <div class="message-auto-dismiss rounded-lg p-6 shadow-2xl border-4 {% if message.tags == 'success' %}bg-green-600 border-green-400 text-white{% elif message.tags == 'error' %}bg-red-600 border-red-400 text-white{% else %}bg-blue-600 border-blue-400 text-white{% endif %} animate-drop-in">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                {% if message.tags == 'success' %}
+                                    <i data-lucide="check-circle" class="h-8 w-8 text-white"></i>
+                                {% elif message.tags == 'error' %}
+                                    <i data-lucide="alert-circle" class="h-8 w-8 text-white"></i>
+                                {% else %}
+                                    <i data-lucide="info" class="h-8 w-8 text-white"></i>
+                                {% endif %}
+                            </div>
+                            <div class="ml-4 flex-1">
+                                <p class="text-lg font-bold">{{ message|safe }}</p>
+                                <p class="text-sm opacity-90">Type: {{ message.tags }}</p>
+                            </div>
+                            <div class="ml-4">
+                                <button onclick="this.parentElement.parentElement.remove()" class="text-white hover:text-gray-200 transition-colors">
+                                    <i data-lucide="x" class="h-6 w-6"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <script>
+                    // Auto-dismiss messages after 5 seconds
+                    document.addEventListener('DOMContentLoaded', function() {
+                        const messages = document.querySelectorAll('.message-auto-dismiss');
+                        messages.forEach(function(message) {
+                            setTimeout(function() {
+                                message.style.transition = 'all 0.5s ease-out';
+                                message.style.opacity = '0';
+                                message.style.transform = 'translate(-50%, -50%) translateY(-20px)';
+                                setTimeout(function() {
+                                    message.remove();
+                                }, 500);
+                            }, 5000); // 5 seconds
+                        });
+                    });
+                </script>
+                {% endif %}
+                
+
+    
+    <!-- Navbar -->
+    <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-50">
+        <div class="w-full px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 flex items-center">
+                        <i data-lucide="package" class="h-8 w-8 text-blue-500"></i>
+                        <span class="ml-2 text-xl font-bold text-white">AssetTrack</span>
+                    </div>
+                    <nav class="hidden md:block ml-10">
+                        <div class="flex space-x-4">
+                            <a href="{% url 'assets:dashboard' %}?office_redirect=false" class="{% if request.resolver_match.url_name == 'dashboard' %}bg-slate-800 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %} px-3 py-2 rounded-md text-sm font-medium">Dashboard</a>
+                            <a href="{% url 'assets:employees' %}" class="{% if request.resolver_match.url_name == 'employees' %}bg-slate-800 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %} px-3 py-2 rounded-md text-sm font-medium">Employees</a>
+                            <div class="relative group">
+                                <a href="{% url 'assets:assets' %}" class="{% if request.resolver_match.url_name == 'assets' %}bg-slate-800 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %} px-3 py-2 rounded-md text-sm font-medium flex items-center">
+                                    Assets
+                                    <i data-lucide="chevron-down" class="ml-1 h-4 w-4"></i>
+                                </a>
+                                <div class="absolute left-0 mt-2 w-48 bg-slate-800 rounded-md shadow-lg py-1 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                                    <a href="{% url 'assets:assets' %}" class="block px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-white">All Assets</a>
+                                    <a href="{% url 'assets:bernem_office_assets' %}" class="block px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-white">Bernem Office Assets</a>
+                                    <a href="{% url 'assets:hamburg_office_assets' %}" class="block px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-white">Hamburg Office Assets</a>
+                                    <a href="{% url 'assets:other_locations_assets' %}" class="block px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-white">Other Locations Assets</a>
+                                    <div class="border-t border-slate-600 my-1"></div>
+                                    <a href="{% url 'assets:assigned_assets' %}" class="block px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-white">Assigned Assets</a>
+                                    <a href="{% url 'assets:unassigned_assets' %}" class="block px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-white">Unassigned Assets</a>
+                                    <a href="{% url 'assets:maintenance_assets' %}" class="block px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-white">Maintenance Assets</a>
+                                    <a href="{% url 'assets:lost_assets' %}" class="block px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-white">Lost Assets</a>
+                                    <a href="{% url 'assets:retired_assets' %}" class="block px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-white">Retired Assets</a>
+                                </div>
+                            </div>
+                            <a href="{% url 'assets:handovers' %}" class="{% if request.resolver_match.url_name == 'handovers' %}bg-slate-800 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %} px-3 py-2 rounded-md text-sm font-medium">Handovers</a>
+                            <a href="{% url 'assets:welcome_packs' %}" class="{% if request.resolver_match.url_name == 'welcome_packs' %}bg-slate-800 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %} px-3 py-2 rounded-md text-sm font-medium">Welcome Packs</a>
+                            <a href="{% url 'assets:azure_ad_sync' %}" class="{% if request.resolver_match.url_name == 'azure_ad_sync' %}bg-slate-800 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %} px-3 py-2 rounded-md text-sm font-medium">Azure Sync</a>
+                        </div>
+                    </nav>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-4 flex items-center md:ml-6">
+                        {% if user.is_authenticated %}
+                            <div class="relative">
+                                <button type="button" class="bg-slate-800 p-1 rounded-full text-slate-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-blue-500 cursor-pointer" onclick="document.getElementById('notification-dropdown').classList.toggle('hidden')">
+                                    <span class="sr-only">View notifications</span>
+                                    <i data-lucide="bell" class="h-6 w-6"></i>
+                                </button>
+                                
+                                <!-- Notification dropdown menu -->
+                                <div class="hidden origin-top-right absolute right-0 mt-2 w-80 rounded-md shadow-lg bg-white dark:bg-slate-800 ring-1 ring-black ring-opacity-5 focus:outline-none z-50 border border-slate-200 dark:border-slate-600" id="notification-dropdown">
+                                    <div class="py-2">
+                                        <div class="px-4 py-2 border-b border-slate-200 dark:border-slate-600">
+                                            <h3 class="text-sm font-medium text-slate-900 dark:text-white">Notifications</h3>
+                                        </div>
+                                        <div class="max-h-64 overflow-y-auto" id="notification-list">
+                                            <!-- Notifications will be loaded here via AJAX -->
+                                            <div class="px-4 py-3 text-center text-slate-400">
+                                                <i data-lucide="loader" class="h-4 w-4 animate-spin mx-auto"></i>
+                                                <p class="text-sm mt-1">Loading notifications...</p>
+                                            </div>
+                                        </div>
+                                        <div class="px-4 py-2 border-t border-slate-200 dark:border-slate-600">
+                                            <a href="{% url 'assets:notifications' %}" class="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium">
+                                                View all notifications
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="ml-3 relative">
+                                <button type="button" class="bg-slate-800 p-1 rounded-full text-slate-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-blue-500 cursor-pointer z-10 relative min-w-[40px] min-h-[40px] flex items-center justify-center" onclick="document.getElementById('help-dropdown').classList.toggle('hidden')">
+                                    <span class="sr-only">Help</span>
+                                    <i data-lucide="help-circle" class="h-6 w-6 pointer-events-none"></i>
+                                </button>
+                                
+                                <!-- Help dropdown menu -->
+                                <div class="hidden origin-top-right absolute right-0 mt-2 w-64 rounded-md shadow-lg bg-white dark:bg-slate-800 ring-1 ring-black ring-opacity-5 focus:outline-none z-50 border border-slate-200 dark:border-slate-600" id="help-dropdown">
+                                    <div class="py-1">
+                                        <a href="{% url 'assets:privacy_policy' %}" class="flex items-center px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
+                                            <i data-lucide="shield" class="mr-3 h-5 w-5 text-slate-400"></i>
+                                            Privacy Policy
+                                        </a>
+                                        <a href="{% url 'assets:user_profile' %}" class="flex items-center px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
+                                            <i data-lucide="user" class="mr-3 h-5 w-5 text-slate-400"></i>
+                                            Your Profile
+                                        </a>
+                                        <a href="{% url 'assets:admin_dashboard' %}" class="flex items-center px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
+                                            <i data-lucide="settings" class="mr-3 h-5 w-5 text-slate-400"></i>
+                                            Admin Dashboard
+                                        </a>
+                                        <div class="border-t border-slate-200 dark:border-slate-600 my-1"></div>
+                                        <a href="https://harren-group.myfreshworks.com/" target="_blank" class="flex items-center px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
+                                            <i data-lucide="headphones" class="mr-3 h-5 w-5 text-slate-400"></i>
+                                            IT Helpdesk
+                                        </a>
+                                        <a href="{% url 'assets:contact_support' %}" class="flex items-center px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
+                                            <i data-lucide="mail" class="mr-3 h-5 w-5 text-slate-400"></i>
+                                            Contact Support
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <button type="button" id="theme-toggle" class="ml-3 bg-slate-800 p-1 rounded-full text-slate-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-blue-500">
+                                <span class="sr-only">Toggle theme</span>
+                                <i data-lucide="sun" class="h-6 w-6" id="theme-icon"></i>
+                            </button>
+                            <div class="ml-3 relative">
+                                <div>
+                                    <button type="button" class="max-w-xs bg-slate-800 rounded-full flex items-center text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-blue-500" id="user-menu" aria-expanded="false" aria-haspopup="true" onclick="toggleUserMenu()">
+                                        <span class="sr-only">Open user menu</span>
+                                        <img class="h-8 w-8 rounded-full cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all" src="{{ user|safe_user_avatar_url }}" alt="{{ user.get_full_name|default:user.username }}"  onclick="openAvatarModal(this.src, '{{ user.get_full_name|default:user.username }}', '{{ user.email }}')">
+                                        <span class="ml-2 text-white">{{ user.username }}</span>
+                                        <i data-lucide="chevron-down" class="ml-2 h-4 w-4 text-slate-400"></i>
+                                    </button>
+                                </div>
+                                
+                                <!-- User dropdown menu -->
+                                <div class="hidden origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-slate-800 ring-1 ring-black ring-opacity-5 focus:outline-none z-50" id="user-dropdown">
+                                    <div class="py-1">
+                                        <a href="{% url 'assets:admin_dashboard' %}" class="block px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-white">
+                                            <i data-lucide="settings" class="inline-block mr-2 h-4 w-4"></i>
+                                            Admin Dashboard
+                                        </a>
+                                        <a href="{% url 'assets:user_profile' %}" class="block px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-white">
+                                            <i data-lucide="user" class="inline-block mr-2 h-4 w-4"></i>
+                                            Your Profile
+                                        </a>
+                                        <a href="{% url 'assets:notifications' %}" class="block px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-white">
+                                            <i data-lucide="bell" class="inline-block mr-2 h-4 w-4"></i>
+                                            Notifications
+                                        </a>
+                                        <div class="border-t border-slate-700"></div>
+                                                                            <a href="{% url 'account_logout' %}" class="block px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-white">
+                                        <i data-lucide="log-out" class="inline-block mr-2 h-4 w-4"></i>
+                                        Sign out
+                                    </a>
+                                    </div>
+                                </div>
+                            </div>
+                        {% else %}
+                            <!-- Login button -->
+                            <a href="{% url 'account_login' %}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+                                <i data-lucide="log-in" class="w-4 h-4 mr-2"></i>
+                                Login
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="-mr-2 flex md:hidden">
+                    <button type="button" class="bg-slate-800 inline-flex items-center justify-center p-2 rounded-md text-slate-400 hover:text-white hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-blue-500" aria-controls="mobile-menu" aria-expanded="false">
+                        <span class="sr-only">Open main menu</span>
+                        <i data-lucide="menu" class="block h-6 w-6"></i>
+                        <i data-lucide="x" class="hidden h-6 w-6"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Mobile menu -->
+        <div class="md:hidden hidden" id="mobile-menu">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <a href="{% url 'assets:dashboard' %}?office_redirect=false" class="{% if request.resolver_match.url_name == 'dashboard' %}bg-slate-800 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %} block px-3 py-2 rounded-md text-base font-medium">Dashboard</a>
+                <a href="{% url 'assets:employees' %}" class="{% if request.resolver_match.url_name == 'employees' %}bg-slate-800 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %} block px-3 py-2 rounded-md text-base font-medium">Employees</a>
+                <a href="{% url 'assets:assets' %}" class="{% if request.resolver_match.url_name == 'assets' %}bg-slate-800 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %} block px-3 py-2 rounded-md text-base font-medium">Assets</a>
+                <a href="{% url 'assets:handovers' %}" class="{% if request.resolver_match.url_name == 'handovers' %}bg-slate-800 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %} block px-3 py-2 rounded-md text-base font-medium">Handovers</a>
+                <a href="{% url 'assets:welcome_packs' %}" class="{% if request.resolver_match.url_name == 'welcome_packs' %}bg-slate-800 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %} block px-3 py-2 rounded-md text-base font-medium">Welcome Packs</a>
+            </div>
+            {% if user.is_authenticated %}
+            <div class="pt-4 pb-3 border-t border-slate-800">
+                <div class="flex items-center px-5">
+                    <div class="flex-shrink-0">
+                        <img class="h-10 w-10 rounded-full cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all" src="{{ user|safe_user_avatar_url }}" alt="{{ user.get_full_name|default:user.username }}"  onclick="openAvatarModal(this.src, '{{ user.get_full_name|default:user.username }}', '{{ user.email }}')">
+                    </div>
+                    <div class="ml-3">
+                        <div class="text-base font-medium text-white">{{ user.get_full_name|default:user.username }}</div>
+                        <div class="text-sm font-medium text-slate-400">IT Administrator</div>
+                    </div>
+                    <button type="button" class="ml-auto bg-slate-800 flex-shrink-0 p-1 rounded-full text-slate-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-blue-500">
+                        <span class="sr-only">View notifications</span>
+                        <i data-lucide="bell" class="h-6 w-6"></i>
+                    </button>
+                    <button type="button" id="theme-toggle-mobile" class="ml-2 bg-slate-800 flex-shrink-0 p-1 rounded-full text-slate-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-blue-500">
+                        <span class="sr-only">Toggle theme</span>
+                        <i data-lucide="sun" class="h-6 w-6" id="theme-icon-mobile"></i>
+                    </button>
+                </div>
+                <div class="mt-3 px-2 space-y-1">
+                    <a href="{% url 'assets:user_profile' %}" class="block px-3 py-2 rounded-md text-base font-medium text-slate-400 hover:text-white hover:bg-slate-800">Your Profile</a>
+                    <a href="#" class="block px-3 py-2 rounded-md text-base font-medium text-slate-400 hover:text-white hover:bg-slate-800">Settings</a>
+                    <a href="{% url 'account_logout' %}" class="block px-3 py-2 rounded-md text-base font-medium text-slate-400 hover:text-white hover:bg-slate-800">Sign out</a>
+                </div>
+            </div>
+            {% else %}
+            <div class="pt-4 pb-3 border-t border-slate-800">
+                <div class="px-5">
+                    <a href="{% url 'account_login' %}" class="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+                        <i data-lucide="log-in" class="w-4 h-4 mr-2"></i>
+                        Login
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 border-t border-slate-800">
+        <div class="w-full px-4 sm:px-6 lg:px-8 py-6">
+            <div class="md:flex md:items-center md:justify-between">
+                <div class="flex justify-center md:order-2 space-x-6">
+                    <a href="#" class="text-slate-400 hover:text-slate-300">
+                        <span class="sr-only">Settings</span>
+                        <i data-lucide="settings" class="h-6 w-6"></i>
+                    </a>
+                </div>
+                <div class="mt-8 md:mt-0 md:order-1">
+                    <p class="text-center text-base text-slate-400">
+                        &copy; 2025 AssetTrack. All rights reserved. | 
+                        <a href="{% url 'assets:privacy_policy' %}" class="text-slate-400 hover:text-slate-300 transition-colors">Privacy Policy</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Avatar Modal -->
+    <div id="avatarModal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 hidden">
+        <div class="bg-slate-800 rounded-xl shadow-2xl border border-slate-700 p-6 max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-white">Employee Profile</h3>
+                <button onclick="closeAvatarModal()" class="text-slate-400 hover:text-white transition-colors">
+                    <i data-lucide="x" class="h-6 w-6"></i>
+                </button>
+            </div>
+            <div class="text-center mb-6">
+                <img id="modalAvatar" src="" alt="Profile Picture" class="w-32 h-32 rounded-full mx-auto mb-4 object-cover">
+                <p id="modalName" class="text-white font-medium text-xl"></p>
+                <p id="modalJobTitle" class="text-slate-400 text-sm mt-1"></p>
+            </div>
+            
+            <!-- Employee Details -->
+            <div class="space-y-4">
+                <div id="modalDepartment" class="hidden">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 bg-blue-900/20 rounded-lg flex items-center justify-center">
+                            <i data-lucide="building" class="h-4 w-4 text-blue-400"></i>
+                        </div>
+                        <div>
+                            <p class="text-slate-400 text-xs">Department</p>
+                            <p id="modalDepartmentText" class="text-white text-sm font-medium"></p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="modalEmail" class="hidden">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 bg-green-900/20 rounded-lg flex items-center justify-center">
+                            <i data-lucide="mail" class="h-4 w-4 text-green-400"></i>
+                        </div>
+                        <div>
+                            <p class="text-slate-400 text-xs">Email</p>
+                            <p id="modalEmailText" class="text-white text-sm font-medium"></p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="modalPhone" class="hidden">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 bg-purple-900/20 rounded-lg flex items-center justify-center">
+                            <i data-lucide="phone" class="h-4 w-4 text-purple-400"></i>
+                        </div>
+                        <div>
+                            <p class="text-slate-400 text-xs">Phone</p>
+                            <p id="modalPhoneText" class="text-white text-sm font-medium"></p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="modalEmployeeId" class="hidden">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 bg-yellow-900/20 rounded-lg flex items-center justify-center">
+                            <i data-lucide="id-card" class="h-4 w-4 text-yellow-400"></i>
+                        </div>
+                        <div>
+                            <p class="text-slate-400 text-xs">Employee ID</p>
+                            <p id="modalEmployeeIdText" class="text-white text-sm font-medium"></p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="modalAssets" class="hidden">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 bg-orange-900/20 rounded-lg flex items-center justify-center">
+                            <i data-lucide="briefcase" class="h-4 w-4 text-orange-400"></i>
+                        </div>
+                        <div>
+                            <p class="text-slate-400 text-xs">Assigned Assets</p>
+                            <p id="modalAssetsText" class="text-white text-sm font-medium"></p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="modalAzureStatus" class="hidden">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 bg-cyan-900/20 rounded-lg flex items-center justify-center">
+                            <i data-lucide="cloud" class="h-4 w-4 text-cyan-400"></i>
+                        </div>
+                        <div>
+                            <p class="text-slate-400 text-xs">Azure AD Status</p>
+                            <p id="modalAzureStatusText" class="text-white text-sm font-medium"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/script.js' %}"></script>
+    
+    <!-- Avatar Modal Script -->
+    <script>
+        function openAvatarModal(avatarSrc, name, employeeData = {}) {
+            const modal = document.getElementById('avatarModal');
+            const modalAvatar = document.getElementById('modalAvatar');
+            const modalName = document.getElementById('modalName');
+            const modalJobTitle = document.getElementById('modalJobTitle');
+
+            modalAvatar.src = avatarSrc;
+            modalName.textContent = name;
+            modalJobTitle.textContent = employeeData.jobTitle || '';
+
+            // Show/hide and populate department
+            const departmentDiv = document.getElementById('modalDepartment');
+            const departmentText = document.getElementById('modalDepartmentText');
+            if (employeeData.department && employeeData.department !== 'Unknown' && employeeData.department !== 'N/A') {
+                departmentText.textContent = employeeData.department;
+                departmentDiv.classList.remove('hidden');
+            } else {
+                departmentDiv.classList.add('hidden');
+            }
+
+            // Show/hide and populate email
+            const emailDiv = document.getElementById('modalEmail');
+            const emailText = document.getElementById('modalEmailText');
+            if (employeeData.email) {
+                emailText.textContent = employeeData.email;
+                emailDiv.classList.remove('hidden');
+            } else {
+                emailDiv.classList.add('hidden');
+            }
+
+            // Show/hide and populate phone
+            const phoneDiv = document.getElementById('modalPhone');
+            const phoneText = document.getElementById('modalPhoneText');
+            if (employeeData.phone && employeeData.phone.trim() !== '') {
+                phoneText.textContent = employeeData.phone;
+                phoneDiv.classList.remove('hidden');
+            } else {
+                phoneDiv.classList.add('hidden');
+            }
+
+            // Show/hide and populate employee ID
+            const employeeIdDiv = document.getElementById('modalEmployeeId');
+            const employeeIdText = document.getElementById('modalEmployeeIdText');
+            if (employeeData.employeeId && employeeData.employeeId.trim() !== '') {
+                employeeIdText.textContent = employeeData.employeeId;
+                employeeIdDiv.classList.remove('hidden');
+            } else {
+                employeeIdDiv.classList.add('hidden');
+            }
+
+            // Show/hide and populate assigned assets
+            const assetsDiv = document.getElementById('modalAssets');
+            const assetsText = document.getElementById('modalAssetsText');
+            if (employeeData.assetCount !== undefined) {
+                assetsText.textContent = `${employeeData.assetCount} asset${employeeData.assetCount !== 1 ? 's' : ''} assigned`;
+                assetsDiv.classList.remove('hidden');
+            } else {
+                assetsDiv.classList.add('hidden');
+            }
+
+            // Show/hide and populate Azure AD status
+            const azureStatusDiv = document.getElementById('modalAzureStatus');
+            const azureStatusText = document.getElementById('modalAzureStatusText');
+            if (employeeData.azureStatus) {
+                azureStatusText.textContent = employeeData.azureStatus;
+                azureStatusDiv.classList.remove('hidden');
+            } else {
+                azureStatusDiv.classList.add('hidden');
+            }
+
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function closeAvatarModal() {
+            const modal = document.getElementById('avatarModal');
+            modal.classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+        
+        // Close modal when clicking outside
+        document.getElementById('avatarModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeAvatarModal();
+            }
+        });
+        
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeAvatarModal();
+            }
+        });
+        
+        // Add click handlers to all avatar images
+        document.addEventListener('DOMContentLoaded', function() {
+            const avatarImages = document.querySelectorAll('img[src*="employee_avatar_url"], img[src*="user_avatar_url"]');
+            avatarImages.forEach(function(img) {
+                img.style.cursor = 'pointer';
+                img.addEventListener('click', function() {
+                    const name = this.alt || 'Profile Picture';
+                    
+                    // Try to extract employee data from the table row or data attributes
+                    let employeeData = {};
+                    const row = this.closest('tr');
+                    if (row) {
+                        // Extract data from table cells
+                        const cells = row.querySelectorAll('td');
+                        if (cells.length > 0) {
+                            // Look for email in the row
+                            const emailCell = row.querySelector('[href^="mailto:"]');
+                            if (emailCell) {
+                                employeeData.email = emailCell.textContent.trim();
+                            }
+                            
+                            // Look for department in the row
+                            const departmentCell = row.querySelector('.text-slate-400');
+                            if (departmentCell) {
+                                const deptText = departmentCell.textContent.trim();
+                                if (deptText && !deptText.includes('•') && deptText !== 'Unknown' && deptText !== 'N/A') {
+                                    employeeData.department = deptText;
+                                }
+                            }
+                            
+                            // Look for phone number
+                            const phoneCell = row.querySelector('[href^="tel:"]');
+                            if (phoneCell) {
+                                employeeData.phone = phoneCell.textContent.trim();
+                            }
+                        }
+                    }
+                    
+                    // Check for data attributes on the image
+                    if (this.dataset.employeeEmail) employeeData.email = this.dataset.employeeEmail;
+                    if (this.dataset.employeeDepartment) employeeData.department = this.dataset.employeeDepartment;
+                    if (this.dataset.employeePhone) employeeData.phone = this.dataset.employeePhone;
+                    if (this.dataset.employeeId) employeeData.employeeId = this.dataset.employeeId;
+                    if (this.dataset.jobTitle) employeeData.jobTitle = this.dataset.jobTitle;
+                    if (this.dataset.assetCount) employeeData.assetCount = parseInt(this.dataset.assetCount);
+                    if (this.dataset.azureStatus) employeeData.azureStatus = this.dataset.azureStatus;
+                    
+                    openAvatarModal(this.src, name, employeeData);
+                });
+            });
+        });
+        
+        // Load notifications when dropdown is opened
+        document.addEventListener('DOMContentLoaded', function() {
+            const notificationButton = document.querySelector('[data-lucide="bell"]').parentElement;
+            const notificationDropdown = document.getElementById('notification-dropdown');
+            const notificationList = document.getElementById('notification-list');
+            
+            notificationButton.addEventListener('click', function() {
+                if (!notificationDropdown.classList.contains('hidden')) {
+                    loadNotifications();
+                }
+            });
+            
+            function loadNotifications() {
+                fetch('/notifications/')
+                    .then(response => response.text())
+                    .then(html => {
+                        // Extract just the notification items from the response
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(html, 'text/html');
+                        const notificationItems = doc.querySelectorAll('.divide-y > div');
+                        
+                        if (notificationItems.length > 0) {
+                            notificationList.innerHTML = '';
+                            notificationItems.forEach(item => {
+                                // Clone and modify the notification item for dropdown
+                                const clone = item.cloneNode(true);
+                                clone.classList.remove('p-6', 'hover:bg-slate-700/50');
+                                clone.classList.add('px-4', 'py-3', 'hover:bg-slate-50', 'dark:hover:bg-slate-700');
+                                
+                                // Remove the "Mark as read" button and other actions for dropdown
+                                const markAsReadButton = clone.querySelector('button[onclick*="markAsRead"]');
+                                if (markAsReadButton) {
+                                    markAsReadButton.remove();
+                                }
+                                
+                                const viewButtons = clone.querySelectorAll('a[href*="assets/"], a[href*="employees/"]');
+                                viewButtons.forEach(button => button.remove());
+                                
+                                notificationList.appendChild(clone);
+                            });
+                        } else {
+                            notificationList.innerHTML = `
+                                <div class="px-4 py-3 text-center text-slate-400">
+                                    <i data-lucide="bell-off" class="h-4 w-4 mx-auto mb-2"></i>
+                                    <p class="text-sm">No notifications</p>
+                                </div>
+                            `;
+                        }
+                        
+                        // Re-initialize Lucide icons
+                        if (typeof lucide !== 'undefined') {
+                            lucide.createIcons();
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error loading notifications:', error);
+                        notificationList.innerHTML = `
+                            <div class="px-4 py-3 text-center text-red-400">
+                                <i data-lucide="alert-circle" class="h-4 w-4 mx-auto mb-2"></i>
+                                <p class="text-sm">Error loading notifications</p>
+                            </div>
+                        `;
+                    });
+            }
+        });
+    </script>
+</body>
+</html>

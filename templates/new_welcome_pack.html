@@ -1,0 +1,240 @@
+{% extends 'base.html' %}
+
+{% block title %}New Welcome Pack | AssetTrack{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700 mb-8">
+        <div class="px-6 py-5 border-b border-slate-700 flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <button onclick="window.history.back()" class="text-slate-400 hover:text-white transition-colors">
+                    <i data-lucide="arrow-left" class="h-6 w-6"></i>
+                </button>
+                <h2 class="text-lg font-semibold text-white">Create New Welcome Pack</h2>
+            </div>
+        </div>
+    </div>
+
+    <!-- Welcome Pack Form -->
+    <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700">
+        <div class="px-6 py-5 border-b border-slate-700">
+            <h3 class="text-lg font-semibold text-white">Employee Welcome Information</h3>
+            <p class="text-sm text-slate-400 mt-1">Fill in the details for the new employee's welcome pack</p>
+        </div>
+        
+        <form method="POST" class="p-6 space-y-8">
+            {% csrf_token %}
+            
+            <!-- Employee Selection -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="employee" class="block text-sm font-medium text-slate-300 mb-2">Select Employee *</label>
+                    <div class="relative">
+                        <input type="text" id="employee_search" placeholder="Search for employee name..." 
+                               class="w-full px-3 py-2 border border-slate-600 rounded-md shadow-sm bg-slate-700 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                               autocomplete="off">
+                        <input type="hidden" name="employee" id="employee" required>
+                        <div id="employee_dropdown" class="absolute z-50 w-full mt-1 bg-slate-700 border border-slate-600 rounded-md shadow-lg max-h-60 overflow-y-auto hidden">
+                            {% for employee in employees %}
+                            <div class="employee-option px-3 py-2 hover:bg-slate-600 cursor-pointer text-white" 
+                                 data-id="{{ employee.id }}" 
+                                 data-name="{{ employee.name }}" 
+                                 data-department="{{ employee.department }}"
+                                 data-email="{{ employee.email }}">
+                                <div class="font-medium">{{ employee.name }}</div>
+                                <div class="text-sm text-slate-400">{{ employee.department }} • {{ employee.email }}</div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div id="selected_employee_display" class="mt-2 p-2 bg-slate-700 border border-slate-600 rounded-md hidden">
+                        <div class="text-white font-medium" id="selected_employee_name"></div>
+                        <div class="text-sm text-slate-400" id="selected_employee_details"></div>
+                    </div>
+                </div>
+                
+                <div>
+                    <label for="start_date" class="block text-sm font-medium text-slate-300 mb-2">Start Date</label>
+                    <input type="date" name="start_date" id="start_date" class="w-full px-3 py-2 border border-slate-600 rounded-md shadow-sm bg-slate-700 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                </div>
+            </div>
+
+            <!-- Employee Information -->
+            <div class="border-t border-slate-700 pt-6">
+                <h4 class="text-md font-medium text-white mb-4">Employee Information</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="employee_email" class="block text-sm font-medium text-slate-300 mb-2">Employee Email</label>
+                        <input type="email" name="employee_email" id="employee_email" placeholder="employee@company.com" class="w-full px-3 py-2 border border-slate-600 rounded-md shadow-sm bg-slate-700 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    
+                    <div>
+                        <label for="employee_password" class="block text-sm font-medium text-slate-300 mb-2">Temporary Password</label>
+                        <input type="text" name="employee_password" id="employee_password" placeholder="Enter temporary password" class="w-full px-3 py-2 border border-slate-600 rounded-md shadow-sm bg-slate-700 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                </div>
+            </div>
+
+            <!-- IT Contact Information -->
+            <div class="border-t border-slate-700 pt-6">
+                <h4 class="text-md font-medium text-white mb-4">IT Contact Information</h4>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                        <label for="it_contact_person" class="block text-sm font-medium text-slate-300 mb-2">IT Contact Person</label>
+                        <input type="text" name="it_contact_person" id="it_contact_person" placeholder="e.g., Frederik Matthies; Kwame Boateng; Vitalii Koval" class="w-full px-3 py-2 border border-slate-600 rounded-md shadow-sm bg-slate-700 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    
+                    <div>
+                        <label for="it_helpdesk_email" class="block text-sm font-medium text-slate-300 mb-2">IT Helpdesk Email</label>
+                        <input type="email" name="it_helpdesk_email" id="it_helpdesk_email" placeholder="it-helpdesk@harren-group.com" class="w-full px-3 py-2 border border-slate-600 rounded-md shadow-sm bg-slate-700 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    
+                    <div>
+                        <label for="it_phone_number" class="block text-sm font-medium text-slate-300 mb-2">IT Phone Number</label>
+                        <input type="tel" name="it_phone_number" id="it_phone_number" placeholder="+49 XXX XXX XXX" class="w-full px-3 py-2 border border-slate-600 rounded-md shadow-sm bg-slate-700 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Teams Information -->
+            <div class="border-t border-slate-700 pt-6">
+                <h4 class="text-md font-medium text-white mb-4">Microsoft Teams Information</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="teams_username" class="block text-sm font-medium text-slate-300 mb-2">Teams Username</label>
+                        <input type="text" name="teams_username" id="teams_username" placeholder="Employee's Teams username" class="w-full px-3 py-2 border border-slate-600 rounded-md shadow-sm bg-slate-700 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    
+                    <div>
+                        <label for="teams_email" class="block text-sm font-medium text-slate-300 mb-2">Teams Email</label>
+                        <input type="email" name="teams_email" id="teams_email" placeholder="employee@company.com" class="w-full px-3 py-2 border border-slate-600 rounded-md shadow-sm bg-slate-700 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Additional Information -->
+            <div class="border-t border-slate-700 pt-6">
+                <h4 class="text-md font-medium text-white mb-4">Additional Information</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="office_location" class="block text-sm font-medium text-slate-300 mb-2">Office Location</label>
+                        <input type="text" name="office_location" id="office_location" placeholder="e.g., Building A, Floor 3, Room 301" class="w-full px-3 py-2 border border-slate-600 rounded-md shadow-sm bg-slate-700 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    
+                    <div>
+                        <label for="department_info" class="block text-sm font-medium text-slate-300 mb-2">Department Information</label>
+                        <textarea name="department_info" id="department_info" rows="3" placeholder="Department-specific information, policies, or procedures..." class="w-full px-3 py-2 border border-slate-600 rounded-md shadow-sm bg-slate-700 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500"></textarea>
+                    </div>
+                </div>
+                
+                <div class="mt-6">
+                    <label for="notes" class="block text-sm font-medium text-slate-300 mb-2">Additional Notes</label>
+                    <textarea name="notes" id="notes" rows="4" placeholder="Any additional information or special instructions for this employee..." class="w-full px-3 py-2 border border-slate-600 rounded-md shadow-sm bg-slate-700 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500"></textarea>
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="border-t border-slate-700 pt-6 flex justify-end space-x-3">
+                <button type="button" onclick="window.history.back()" class="px-4 py-2 border border-slate-600 rounded-md text-sm font-medium text-slate-300 bg-slate-700 hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500">
+                    Cancel
+                </button>
+                <button type="submit" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <i data-lucide="save" class="h-4 w-4 mr-2"></i>
+                    Create Welcome Pack
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const employeeSearch = document.getElementById('employee_search');
+    const employeeDropdown = document.getElementById('employee_dropdown');
+    const employeeOptions = document.querySelectorAll('.employee-option');
+    const employeeHiddenInput = document.getElementById('employee');
+    const selectedEmployeeDisplay = document.getElementById('selected_employee_display');
+    const selectedEmployeeName = document.getElementById('selected_employee_name');
+    const selectedEmployeeDetails = document.getElementById('selected_employee_details');
+    const employeeEmailInput = document.getElementById('employee_email');
+    
+    // Show dropdown when input is focused
+    employeeSearch.addEventListener('focus', function() {
+        employeeDropdown.classList.remove('hidden');
+        filterEmployees();
+    });
+    
+    // Hide dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!employeeSearch.contains(e.target) && !employeeDropdown.contains(e.target)) {
+            employeeDropdown.classList.add('hidden');
+        }
+    });
+    
+    // Filter employees as user types
+    employeeSearch.addEventListener('input', function() {
+        filterEmployees();
+        employeeDropdown.classList.remove('hidden');
+    });
+    
+    // Handle employee selection
+    employeeOptions.forEach(option => {
+        option.addEventListener('click', function() {
+            const employeeId = this.getAttribute('data-id');
+            const employeeName = this.getAttribute('data-name');
+            const employeeDepartment = this.getAttribute('data-department');
+            const employeeEmail = this.getAttribute('data-email');
+            
+            // Set the hidden input value
+            employeeHiddenInput.value = employeeId;
+            
+            // Update the search input
+            employeeSearch.value = employeeName;
+            
+            // Show selected employee display
+            selectedEmployeeName.textContent = employeeName;
+            selectedEmployeeDetails.textContent = `${employeeDepartment} • ${employeeEmail}`;
+            selectedEmployeeDisplay.classList.remove('hidden');
+            
+            // Auto-populate email field
+            employeeEmailInput.value = employeeEmail;
+            
+            // Hide dropdown
+            employeeDropdown.classList.add('hidden');
+        });
+    });
+    
+    // Filter employees based on search input
+    function filterEmployees() {
+        const searchTerm = employeeSearch.value.toLowerCase();
+        
+        employeeOptions.forEach(option => {
+            const employeeName = option.getAttribute('data-name').toLowerCase();
+            const employeeDepartment = option.getAttribute('data-department').toLowerCase();
+            const employeeEmail = option.getAttribute('data-email').toLowerCase();
+            
+            if (employeeName.includes(searchTerm) || 
+                employeeDepartment.includes(searchTerm) || 
+                employeeEmail.includes(searchTerm)) {
+                option.style.display = 'block';
+            } else {
+                option.style.display = 'none';
+            }
+        });
+    }
+    
+    // Clear selection when search is cleared
+    employeeSearch.addEventListener('input', function() {
+        if (this.value === '') {
+            employeeHiddenInput.value = '';
+            selectedEmployeeDisplay.classList.add('hidden');
+            employeeEmailInput.value = '';
+        }
+    });
+    
+    // Set default IT contact information
+    document.getElementById('it_helpdesk_email').value = 'it-helpdesk@harren-group.com';
+});
+</script>
+{% endblock %}

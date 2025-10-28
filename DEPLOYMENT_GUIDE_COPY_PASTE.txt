@@ -1,0 +1,405 @@
+DJANGO ASSETTRACK WINDOWS SERVER DEPLOYMENT GUIDE
+==================================================
+
+COMPLETE STEP-BY-STEP INSTRUCTIONS FOR HOSTING YOUR DJANGO APPLICATION ON WINDOWS SERVER
+
+TABLE OF CONTENTS
+=================
+1. Prerequisites
+2. Step-by-Step Deployment Process
+3. Getting Your Server IP Address
+4. Configuration Files
+5. Deployment Scripts
+6. Testing Your Application
+7. Troubleshooting
+8. Security Considerations
+9. Maintenance and Backup
+
+1. PREREQUISITES
+===============
+
+Before you start, you need to install these on your Windows Server:
+
+A) PYTHON INSTALLATION
+- Go to https://python.org
+- Download Python 3.8 or higher
+- During installation, CHECK "Add Python to PATH"
+- Verify installation by opening Command Prompt and typing: python --version
+
+B) VISUAL C++ REDISTRIBUTABLE (if needed)
+- Download from: https://aka.ms/vs/17/release/vc_redist.x64.exe
+- Install if you get DLL errors during deployment
+
+2. STEP-BY-STEP DEPLOYMENT PROCESS
+==================================
+
+STEP 1: COPY YOUR PROJECT TO THE SERVER
+- Copy your entire Django project folder to the Windows Server
+- Make sure all files are in one folder (e.g., C:\AssetTrack)
+
+STEP 2: GET YOUR SERVER'S IP ADDRESS
+- Open PowerShell as Administrator
+- Run this command to get your server information:
+  powershell -ExecutionPolicy Bypass -File get_server_info.ps1
+- Note down the IP address (e.g., 192.168.1.100)
+
+STEP 3: UPDATE CONFIGURATION
+- Open the file: assettrack_django/settings_production.py
+- Find the ALLOWED_HOSTS section
+- Replace the placeholder IP with your actual server IP:
+  ALLOWED_HOSTS = [
+      'localhost',
+      '127.0.0.1',
+      '192.168.1.100',  # YOUR ACTUAL SERVER IP HERE
+      'your-domain.com',  # If you have a domain
+  ]
+
+STEP 4: RUN THE DEPLOYMENT SCRIPT
+- Open Command Prompt as Administrator
+- Navigate to your project folder
+- Run: deploy_windows_server.bat
+- Follow the prompts (create superuser if needed)
+
+STEP 5: CONFIGURE FIREWALL
+- Run: configure_firewall.bat
+- This will allow access to port 8000
+
+STEP 6: TEST YOUR APPLICATION
+- Open a web browser
+- Go to: http://[YOUR_SERVER_IP]:8000
+- Example: http://192.168.1.100:8000
+
+3. GETTING YOUR SERVER IP ADDRESS
+=================================
+
+Method 1: Using the provided script
+- Run: powershell -ExecutionPolicy Bypass -File get_server_info.ps1
+
+Method 2: Manual way
+- Open Command Prompt
+- Type: ipconfig
+- Look for "IPv4 Address" under your network adapter
+
+Method 3: Using PowerShell
+- Open PowerShell
+- Type: Get-NetIPAddress -AddressFamily IPv4
+
+4. CONFIGURATION FILES EXPLAINED
+================================
+
+A) settings_production.py
+This file contains production settings for your Django application:
+- DEBUG = False (for security)
+- ALLOWED_HOSTS (list of IPs that can access your app)
+- Static files configuration
+- Security settings
+- Logging configuration
+
+B) requirements.txt
+Contains all Python packages needed:
+- Django>=4.2.0
+- requests>=2.32.0
+- python-dotenv>=1.0.0
+- django-allauth>=0.57.0
+- whitenoise>=6.6.0
+- gunicorn>=21.2.0
+- waitress>=2.1.2
+
+5. DEPLOYMENT SCRIPTS EXPLAINED
+===============================
+
+A) deploy_windows_server.bat
+This script does everything automatically:
+- Checks Python installation
+- Installs dependencies
+- Collects static files
+- Runs database migrations
+- Creates superuser (optional)
+- Shows server IP
+- Starts the server
+
+B) configure_firewall.bat
+This script configures Windows Firewall:
+- Adds inbound rule for port 8000
+- Adds outbound rule for port 8000
+- Verifies rules were added
+
+C) install_windows_service.bat
+This script installs your app as a Windows Service:
+- Downloads NSSM (service manager)
+- Installs Django as a service
+- Sets it to start automatically with Windows
+
+D) get_server_info.ps1
+This PowerShell script shows:
+- Server name and OS
+- Network adapters and IP addresses
+- Firewall status
+- Python installation
+- Port 8000 status
+
+6. TESTING YOUR APPLICATION
+===========================
+
+After deployment, test these:
+
+A) Local Access
+- Open browser on the server
+- Go to: http://localhost:8000
+- Should show your Django application
+
+B) Network Access
+- Open browser on another computer
+- Go to: http://[SERVER_IP]:8000
+- Should show your Django application
+
+C) Admin Access
+- Go to: http://[SERVER_IP]:8000/admin
+- Login with your superuser credentials
+
+7. TROUBLESHOOTING COMMON ISSUES
+================================
+
+ISSUE 1: "Python is not recognized"
+SOLUTION:
+- Reinstall Python and check "Add to PATH"
+- Restart Command Prompt
+- Verify with: python --version
+
+ISSUE 2: "Port 8000 is already in use"
+SOLUTION:
+- Check what's using the port: netstat -ano | findstr :8000
+- Kill the process or use a different port
+- Change port in settings and scripts
+
+ISSUE 3: "Firewall blocking access"
+SOLUTION:
+- Run configure_firewall.bat as Administrator
+- Or manually add firewall rules
+- Check Windows Firewall settings
+
+ISSUE 4: "Permission denied"
+SOLUTION:
+- Run all scripts as Administrator
+- Check file permissions
+- Ensure you have write access to the project folder
+
+ISSUE 5: "Database errors"
+SOLUTION:
+- Ensure db.sqlite3 file is writable
+- Check if SQLite is working
+- Try running migrations manually
+
+ISSUE 6: "Cannot access from other computers"
+SOLUTION:
+- Verify firewall rules are added
+- Check if server IP is correct
+- Ensure network allows port 8000
+- Try disabling Windows Firewall temporarily for testing
+
+8. SECURITY CONSIDERATIONS
+==========================
+
+A) Change Django Secret Key
+- Generate new key: python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+- Update in settings_production.py
+
+B) Use HTTPS in Production
+- Install SSL certificate
+- Update CSRF_TRUSTED_ORIGINS with HTTPS URLs
+- Set SESSION_COOKIE_SECURE = True
+
+C) Database Security
+- Consider using SQL Server or PostgreSQL
+- Use strong passwords
+- Regular backups
+
+D) Network Security
+- Configure firewall properly
+- Use VPN for external access
+- Regular security updates
+
+9. MAINTENANCE AND BACKUP
+=========================
+
+A) Database Backup
+Command: python manage.py dumpdata > backup.json --settings=assettrack_django.settings_production
+
+B) Database Restore
+Command: python manage.py loaddata backup.json --settings=assettrack_django.settings_production
+
+C) Regular Updates
+- Keep Django updated
+- Monitor security patches
+- Update dependencies regularly
+
+D) Logs
+- Check logs in: logs/django.log
+- Windows Event Viewer for service issues
+
+10. MANUAL DEPLOYMENT (ALTERNATIVE)
+===================================
+
+If scripts don't work, do it manually:
+
+1. Install dependencies:
+   pip install -r requirements.txt
+
+2. Collect static files:
+   python manage.py collectstatic --noinput --settings=assettrack_django.settings_production
+
+3. Run migrations:
+   python manage.py migrate --settings=assettrack_django.settings_production
+
+4. Create superuser:
+   python manage.py createsuperuser --settings=assettrack_django.settings_production
+
+5. Start server:
+   python manage.py runserver 0.0.0.0:8000 --settings=assettrack_django.settings_production
+
+11. WINDOWS SERVICE MANAGEMENT
+==============================
+
+If you installed as a Windows Service:
+
+Start service:
+nssm-2.24\win64\nssm.exe start DjangoAssetTrack
+
+Stop service:
+nssm-2.24\win64\nssm.exe stop DjangoAssetTrack
+
+Remove service:
+nssm-2.24\win64\nssm.exe remove DjangoAssetTrack confirm
+
+12. PERFORMANCE OPTIMIZATION
+============================
+
+A) Use Production WSGI Server
+- Install waitress: pip install waitress
+- Run with: waitress-serve --host=0.0.0.0 --port=8000 assettrack_django.wsgi:application
+
+B) Static Files
+- Use IIS or nginx to serve static files
+- Configure STATIC_ROOT properly
+
+C) Database
+- Use connection pooling
+- Optimize queries
+
+13. FINAL CHECKLIST
+===================
+
+Before going live, verify:
+
+□ Python is installed and in PATH
+□ All dependencies are installed
+□ Database migrations are complete
+□ Static files are collected
+□ Firewall rules are configured
+□ Server IP is in ALLOWED_HOSTS
+□ Application starts without errors
+□ Can access from localhost
+□ Can access from other computers
+□ Admin interface works
+□ All features work correctly
+□ Logs are being created
+□ Backup strategy is in place
+
+14. SUPPORT AND TROUBLESHOOTING
+===============================
+
+If you encounter issues:
+
+1. Check the logs in logs/django.log
+2. Verify all prerequisites are installed
+3. Ensure firewall and network settings are correct
+4. Test with a simple Django application first
+5. Check Windows Event Viewer for service issues
+6. Verify file permissions
+7. Test network connectivity
+
+15. COMMON COMMANDS REFERENCE
+=============================
+
+Python version: python --version
+Install packages: pip install -r requirements.txt
+Collect static: python manage.py collectstatic --noinput --settings=assettrack_django.settings_production
+Run migrations: python manage.py migrate --settings=assettrack_django.settings_production
+Create superuser: python manage.py createsuperuser --settings=assettrack_django.settings_production
+Start server: python manage.py runserver 0.0.0.0:8000 --settings=assettrack_django.settings_production
+Check IP: ipconfig
+Check port: netstat -ano | findstr :8000
+Firewall rules: netsh advfirewall firewall show rule name="Django AssetTrack HTTP"
+
+16. FILE STRUCTURE AFTER DEPLOYMENT
+===================================
+
+Your project folder should contain:
+- All your Django files
+- staticfiles/ (created by collectstatic)
+- logs/ (created automatically)
+- db.sqlite3 (your database)
+- All the .bat and .ps1 scripts
+- requirements.txt
+- settings_production.py
+
+17. NETWORK ACCESS FROM OTHER COMPUTERS
+=======================================
+
+To access your application from other computers:
+
+1. Make sure firewall allows port 8000
+2. Use the server's IP address
+3. Format: http://[SERVER_IP]:8000
+4. Example: http://192.168.1.100:8000
+
+If it doesn't work:
+- Check Windows Firewall
+- Verify network connectivity
+- Test with ping [SERVER_IP]
+- Check if antivirus is blocking
+
+18. UPDATING YOUR APPLICATION
+=============================
+
+When you need to update your application:
+
+1. Stop the current server (Ctrl+C or stop service)
+2. Copy new files to server
+3. Run: python manage.py migrate --settings=assettrack_django.settings_production
+4. Run: python manage.py collectstatic --noinput --settings=assettrack_django.settings_production
+5. Restart the server
+
+19. MONITORING AND LOGS
+=======================
+
+Monitor your application:
+
+1. Check logs: logs/django.log
+2. Monitor Windows Event Viewer
+3. Check server performance
+4. Monitor disk space
+5. Check database size
+
+20. BACKUP STRATEGY
+===================
+
+Regular backups:
+
+1. Database backup (daily):
+   python manage.py dumpdata > backup_$(date +%Y%m%d).json --settings=assettrack_django.settings_production
+
+2. File backup (weekly):
+   - Copy entire project folder
+   - Include database file
+   - Include logs
+
+3. Test restore procedures regularly
+
+==================================================
+END OF DEPLOYMENT GUIDE
+==================================================
+
+This guide covers everything you need to deploy your Django AssetTrack application on Windows Server. Follow the steps in order and you should have a working application accessible from your network.
+
+For additional help, check the logs and troubleshoot using the provided commands.
