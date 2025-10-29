@@ -181,7 +181,7 @@ AZURE_CLIENT_ID = os.getenv('AZURE_CLIENT_ID')
 AZURE_CLIENT_SECRET = os.getenv('AZURE_CLIENT_SECRET')
 
 # Email domain for production (used in email links)
-EMAIL_DOMAIN = 'harren-group.com'
+EMAIL_DOMAIN = '172.27.2.43'
 
 # Support email settings
 SUPPORT_EMAIL = 'it-office-assettrack@harren-group.com'

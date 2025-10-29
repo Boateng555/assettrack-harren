@@ -2047,11 +2047,8 @@ def get_public_welcome_pack_url(welcome_pack):
             return None
         
         # Build public URL
-        if settings.DEBUG:
-            base_url = "http://localhost:8000"
-        else:
-            domain = getattr(settings, 'EMAIL_DOMAIN', settings.ALLOWED_HOSTS[0] if settings.ALLOWED_HOSTS else 'localhost')
-            base_url = f"https://{domain}"
+        domain = getattr(settings, 'EMAIL_DOMAIN', settings.ALLOWED_HOSTS[0] if settings.ALLOWED_HOSTS else '172.27.2.43')
+        base_url = f"https://{domain}"
         
         public_url = f"{base_url}{reverse('assets:public_welcome_pack_detail', args=[welcome_pack.id, token])}"
         return public_url
@@ -2118,11 +2115,8 @@ def send_employee_welcome_email(welcome_pack):
         welcome_pack_url = get_public_welcome_pack_url(welcome_pack)
         if not welcome_pack_url:
             # Fallback to regular URL if public URL creation fails
-            if settings.DEBUG:
-                welcome_pack_url = f"http://localhost:8000{reverse('assets:welcome_pack_detail', args=[welcome_pack.id])}"
-            else:
-                domain = getattr(settings, 'EMAIL_DOMAIN', settings.ALLOWED_HOSTS[0] if settings.ALLOWED_HOSTS else 'localhost')
-                welcome_pack_url = f"https://{domain}{reverse('assets:welcome_pack_detail', args=[welcome_pack.id])}"
+            domain = getattr(settings, 'EMAIL_DOMAIN', settings.ALLOWED_HOSTS[0] if settings.ALLOWED_HOSTS else '172.27.2.43')
+            welcome_pack_url = f"https://{domain}{reverse('assets:welcome_pack_detail', args=[welcome_pack.id])}"
         
         # Email subject and content
         subject = f"Welcome to Harren Group - {welcome_pack.employee.name}"
@@ -2338,11 +2332,8 @@ def send_handover_signature_email(handover):
         handover_url = get_public_handover_url(handover)
         if not handover_url:
             # Fallback to regular URL if public URL creation fails
-            if settings.DEBUG:
-                handover_url = f"http://localhost:8000{reverse('assets:handover_detail', args=[handover.id])}"
-            else:
-                domain = getattr(settings, 'EMAIL_DOMAIN', settings.ALLOWED_HOSTS[0] if settings.ALLOWED_HOSTS else 'localhost')
-                handover_url = f"https://{domain}{reverse('assets:handover_detail', args=[handover.id])}"
+            domain = getattr(settings, 'EMAIL_DOMAIN', settings.ALLOWED_HOSTS[0] if settings.ALLOWED_HOSTS else '172.27.2.43')
+            handover_url = f"https://{domain}{reverse('assets:handover_detail', args=[handover.id])}"
         
         # Email subject and content
         subject = f"Asset Handover Signature Required - {handover.handover_id} - Harren Group"
@@ -3454,10 +3445,8 @@ def get_public_handover_url(handover):
         handover_token = create_handover_token(handover)
         if handover_token:
             # Build public URL
-            if settings.DEBUG:
-                base_url = "http://localhost:8000"
-            else:
-                base_url = f"https://{settings.EMAIL_DOMAIN}"
+            domain = getattr(settings, 'EMAIL_DOMAIN', settings.ALLOWED_HOSTS[0] if settings.ALLOWED_HOSTS else '172.27.2.43')
+            base_url = f"https://{domain}"
             
             return f"{base_url}/handover/public/{handover.id}/{handover_token.token}/"
         
