@@ -175,6 +175,10 @@ MESSAGE_STORAGE = 'django.contrib.messages.storage.session.SessionStorage'
 EMAIL_BACKEND = 'assets.microsoft_graph_email.MicrosoftGraphEmailBackend'
 DEFAULT_FROM_EMAIL = 'it-office-assettrack@harren-group.com'
 
+# AI Assistant settings - Ollama (Free, Self-hosted)
+OLLAMA_URL = os.getenv('OLLAMA_URL', 'http://localhost:11434')
+OLLAMA_MODEL = os.getenv('OLLAMA_MODEL', 'llama3.2:3b')
+
 # Azure AD credentials for Microsoft Graph
 AZURE_TENANT_ID = os.getenv('AZURE_TENANT_ID')
 AZURE_CLIENT_ID = os.getenv('AZURE_CLIENT_ID')

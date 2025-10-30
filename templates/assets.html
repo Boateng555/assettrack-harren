@@ -483,11 +483,11 @@ if (typeof Quagga === 'undefined') {
 
     <!-- Office Location Statistics -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <a href="{% url 'assets:bernem_office_assets' %}" class="bg-slate-800 rounded-xl p-6 shadow-lg border border-slate-700 hover:bg-slate-700 hover:border-slate-600 transition-all duration-200 cursor-pointer group">
+        <a href="{% url 'assets:bremen_office_assets' %}" class="bg-slate-800 rounded-xl p-6 shadow-lg border border-slate-700 hover:bg-slate-700 hover:border-slate-600 transition-all duration-200 cursor-pointer group">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-sm font-medium text-slate-400 group-hover:text-blue-400 transition-colors">Bernem Office</p>
-                    <p class="mt-1 text-3xl font-semibold text-white">{{ bernem_assets }}</p>
+                    <p class="text-sm font-medium text-slate-400 group-hover:text-blue-400 transition-colors">Bremen Office</p>
+                    <p class="mt-1 text-3xl font-semibold text-white">{{ bremen_assets }}</p>
                 </div>
                 <div class="p-3 rounded-lg bg-blue-900/20 text-blue-400 group-hover:bg-blue-900/30 transition-colors">
                     <i data-lucide="building" class="h-6 w-6"></i>
@@ -567,7 +567,7 @@ if (typeof Quagga === 'undefined') {
                 <div>
                     <select name="office" class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <option value="">All Offices</option>
-                        <option value="bernem" {% if office_filter == 'bernem' %}selected{% endif %}>Bernem Office</option>
+                        <option value="bremen" {% if office_filter == 'bremen' %}selected{% endif %}>Bremen Office</option>
                         <option value="hamburg" {% if office_filter == 'hamburg' %}selected{% endif %}>Hamburg Office</option>
                         <option value="other" {% if office_filter == 'other' %}selected{% endif %}>Other Location</option>
                     </select>
@@ -640,7 +640,7 @@ if (typeof Quagga === 'undefined') {
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                {% if asset.office_location == 'bernem' %}bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400
+                                {% if asset.office_location == 'bremen' %}bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400
                                 {% elif asset.office_location == 'hamburg' %}bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400
                                 {% else %}bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400{% endif %}">
                                 {{ asset.get_office_location_display }}
@@ -937,7 +937,7 @@ if (typeof Quagga === 'undefined') {
                             <label class="block text-sm font-medium text-slate-400 mb-2">Office Location</label>
                             <select name="office_location" id="officeLocation" required 
                                     class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                <option value="bernem">Bernem Office</option>
+                                <option value="bremen">Bremen Office</option>
                                 <option value="hamburg">Hamburg Office</option>
                                 <option value="other">Other Location</option>
                             </select>

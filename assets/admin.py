@@ -10,14 +10,14 @@ class EmployeeAdmin(admin.ModelAdmin):
 
 @admin.register(Asset)
 class AssetAdmin(admin.ModelAdmin):
-    list_display = ['name', 'asset_type', 'serial_number', 'status', 'assigned_to', 'can_delete', 'deletion_restricted', 'created_at']
+    list_display = ['name', 'asset_type', 'serial_number', 'st_tag', 'status', 'assigned_to', 'can_delete', 'deletion_restricted', 'created_at']
     list_filter = ['asset_type', 'status', 'can_delete', 'deletion_restricted', 'created_at']
-    search_fields = ['name', 'serial_number', 'model']
+    search_fields = ['name', 'serial_number', 'st_tag', 'model']
     ordering = ['name']
     
     fieldsets = (
         ('Basic Information', {
-            'fields': ('name', 'asset_type', 'serial_number', 'model', 'manufacturer', 'status', 'assigned_to')
+            'fields': ('name', 'asset_type', 'serial_number', 'st_tag', 'model', 'manufacturer', 'status', 'assigned_to')
         }),
         ('Dates', {
             'fields': ('purchase_date', 'warranty_expiry', 'subscription_end')

@@ -75,7 +75,7 @@
                             <input 
                                 type="text" 
                                 id="asset_search" 
-                                placeholder="Search assets by name or serial number..." 
+                                placeholder="Search assets by name, serial number, or ST tag..." 
                                 class="w-full px-3 py-2 border border-slate-600 rounded-md shadow-sm bg-slate-700 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                                 autocomplete="off"
                             >
@@ -96,11 +96,14 @@
                     <!-- Asset Selection Grid -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-64 overflow-y-auto border border-slate-600 rounded-md p-4 bg-slate-700" id="asset_grid">
                         {% for asset in available_assets %}
-                        <div class="asset-item flex items-center" data-name="{{ asset.name|lower }}" data-serial="{{ asset.serial_number|lower }}">
+                        <div class="asset-item flex items-center" data-name="{{ asset.name|lower }}" data-serial="{{ asset.serial_number|lower }}" data-st-tag="{{ asset.st_tag|default:''|lower }}">
                             <input type="checkbox" name="assets" value="{{ asset.id }}" id="asset_{{ asset.id }}" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-slate-600 rounded bg-slate-700">
                             <label for="asset_{{ asset.id }}" class="ml-3 text-sm text-slate-300">
                                 <div class="font-medium">{{ asset.name }}</div>
                                 <div class="text-slate-400">{{ asset.serial_number }} - {{ asset.get_asset_type_display }}</div>
+                                {% if asset.st_tag %}
+                                <div class="text-slate-500 text-xs">ST: {{ asset.st_tag }}</div>
+                                {% endif %}
                             </label>
                         </div>
                         {% empty %}
@@ -378,8 +381,9 @@ function filterAssets(query) {
     assetItems.forEach(item => {
         const name = item.getAttribute('data-name') || '';
         const serial = item.getAttribute('data-serial') || '';
+        const stTag = item.getAttribute('data-st-tag') || '';
         
-        if (name.includes(query) || serial.includes(query)) {
+        if (name.includes(query) || serial.includes(query) || stTag.includes(query)) {
             item.style.display = 'flex';
             visibleCount++;
         } else {

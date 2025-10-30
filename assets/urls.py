@@ -24,7 +24,7 @@ urlpatterns = [
     
     # Asset management
     path('assets/', views.assets, name='assets'),
-    path('assets/bernem/', views.bernem_office_assets, name='bernem_office_assets'),
+    path('assets/bremen/', views.bremen_office_assets, name='bremen_office_assets'),
     path('assets/hamburg/', views.hamburg_office_assets, name='hamburg_office_assets'),
     path('assets/other/', views.other_locations_assets, name='other_locations_assets'),
     path('assets/unassigned/', views.unassigned_assets, name='unassigned_assets'),
@@ -103,4 +103,9 @@ urlpatterns = [
     
     # Contact Support
     path('contact-support/', views.contact_support, name='contact_support'),
+    
+    # AI Assistant
+    path('ai-chat/', views.ai_chat, name='ai_chat'),
+    path('ai/quick-insights/', views.ai_quick_insights, name='ai_quick_insights'),
+    path('ai/search/', views.ai_search, name='ai_search'),
 ]

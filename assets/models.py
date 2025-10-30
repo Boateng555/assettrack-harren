@@ -22,7 +22,7 @@ class Employee(models.Model):
     ]
     
     OFFICE_CHOICES = [
-        ('bernem', 'Bernem Office'),
+        ('bremen', 'Bremen Office'),
         ('hamburg', 'Hamburg Office'),
         ('other', 'Other Location'),
     ]
@@ -44,7 +44,7 @@ class Employee(models.Model):
     job_title = models.CharField(max_length=200, blank=True, null=True, help_text="Job title from Azure AD")
     employee_id = models.CharField(max_length=50, blank=True, null=True, help_text="Employee ID from Azure AD")
     last_azure_sync = models.DateTimeField(null=True, blank=True, help_text="Last time data was synced from Azure AD")
-    office_location = models.CharField(max_length=20, choices=OFFICE_CHOICES, default='bernem', help_text="Office location where the employee is based")
+    office_location = models.CharField(max_length=20, choices=OFFICE_CHOICES, default='bremen', help_text="Office location where the employee is based")
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -97,6 +97,7 @@ class Asset(models.Model):
     name = models.CharField(max_length=200)
     asset_type = models.CharField(max_length=20, choices=ASSET_TYPES)
     serial_number = models.CharField(max_length=100, unique=True)
+    st_tag = models.CharField(max_length=50, blank=True, null=True, help_text="ST tag for asset identification")
     model = models.CharField(max_length=200, blank=True, null=True)
     manufacturer = models.CharField(max_length=200, blank=True, null=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='available')
@@ -118,11 +119,11 @@ class Asset(models.Model):
     
     # Office Location Field
     OFFICE_CHOICES = [
-        ('bernem', 'Bernem Office'),
+        ('bremen', 'Bremen Office'),
         ('hamburg', 'Hamburg Office'),
         ('other', 'Other Location'),
     ]
-    office_location = models.CharField(max_length=20, choices=OFFICE_CHOICES, default='bernem', help_text="Office location where the asset is located")
+    office_location = models.CharField(max_length=20, choices=OFFICE_CHOICES, default='bremen', help_text="Office location where the asset is located")
     
     # Software Asset Fields
     license_key = models.CharField(max_length=200, blank=True, null=True, help_text="Software license key")

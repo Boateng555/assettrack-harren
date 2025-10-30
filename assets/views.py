@@ -18,6 +18,7 @@ import random
 
 from .models import Employee, Asset, Handover, WelcomePack, HandoverToken, Notification
 from .azure_ad_integration import AzureADIntegration
+from .ai_assistant import AssetTrackAI
 import secrets
 
 def get_user_office(request):
@@ -42,7 +43,7 @@ def get_user_office(request):
                     
     except Employee.DoesNotExist:
         pass
-    return 'bernem'  # Default to Bernem office
+    return 'bremen'  # Default to Bremen office
 
 def detect_office_by_phone(phone):
     """Detect office location based on real phone number patterns"""
@@ -93,20 +94,20 @@ def detect_office_by_phone(phone):
             # Hamburg area codes
             hamburg_codes = ['40']  # Hamburg main area code
             
-            # Bernem area codes  
-            bernem_codes = ['421']  # Bernem main area code
+            # Bremen area codes  
+            bremen_codes = ['421']  # Bremen main area code
             
             # Check for Hamburg area codes
             for code in hamburg_codes:
                 if area_code.startswith(code):
                     return 'hamburg'
             
-            # Check for Bernem area codes
-            for code in bernem_codes:
+            # Check for Bremen area codes
+            for code in bremen_codes:
                 if area_code.startswith(code):
-                    return 'bernem'
+                    return 'bremen'
             
-            # If it's a German number but not Hamburg (40) or Bernem (421),
+            # If it's a German number but not Hamburg (40) or Bremen (421),
             # and it's not a mobile number, assume Hamburg (more international)
             if not area_code.startswith('017') and not area_code.startswith('015') and not area_code.startswith('016'):
                 return 'hamburg'
@@ -387,15 +388,8 @@ def azure_ad_status_api(request):
 def dashboard(request):
     """Dashboard view with statistics and recent handovers"""
     
-    # Check if user wants to see their office-specific dashboard
-    office_redirect = request.GET.get('office_redirect', 'true')
-    
-    if office_redirect == 'true':
-        user_office = get_user_office(request)
-        if user_office == 'hamburg':
-            return redirect('assets:hamburg_office_assets')
-        elif user_office == 'bernem':
-            return redirect('assets:bernem_office_assets')
+    # Always show the Dashboard first - users can navigate to office-specific pages from there
+    # Removed automatic office redirect so users always land on the Dashboard
     
     # Add a test message to verify the message system is working
     if not request.session.get('test_message_shown'):
@@ -572,6 +566,7 @@ def assets(request):
         assets = assets.filter(
             Q(name__icontains=search_query) |
             Q(serial_number__icontains=search_query) |
+            Q(st_tag__icontains=search_query) |
             Q(model__icontains=search_query) |
             Q(manufacturer__icontains=search_query) |
             Q(assigned_to__name__icontains=search_query)
@@ -585,7 +580,7 @@ def assets(request):
     lost_assets = Asset.objects.filter(status='lost').count()
     
     # Office location statistics
-    bernem_assets = Asset.objects.filter(office_location='bernem').count()
+    bremen_assets = Asset.objects.filter(office_location='bremen').count()
     hamburg_assets = Asset.objects.filter(office_location='hamburg').count()
     other_assets = Asset.objects.filter(office_location='other').count()
     
@@ -652,18 +647,18 @@ def assets(request):
         'asset_type_filter': asset_type_filter,
         'office_filter': office_filter,
         'search_query': search_query,
-        'bernem_assets': bernem_assets,
+        'bremen_assets': bremen_assets,
         'hamburg_assets': hamburg_assets,
         'other_assets': other_assets,
     }
     return render(request, 'assets.html', context)
 
 @login_required
-def bernem_office_assets(request):
-    """Dedicated view for Bernem office assets"""
+def bremen_office_assets(request):
+    """Dedicated view for Bremen office assets"""
     
-    # Get all Bernem office assets
-    assets = Asset.objects.filter(office_location='bernem').select_related('assigned_to').all()
+    # Get all Bremen office assets
+    assets = Asset.objects.filter(office_location='bremen').select_related('assigned_to').all()
     
     # Filter by status if provided
     status_filter = request.GET.get('status')
@@ -681,17 +676,18 @@ def bernem_office_assets(request):
         assets = assets.filter(
             Q(name__icontains=search_query) |
             Q(serial_number__icontains=search_query) |
+            Q(st_tag__icontains=search_query) |
             Q(model__icontains=search_query) |
             Q(manufacturer__icontains=search_query) |
             Q(assigned_to__name__icontains=search_query)
         )
     
-    # Calculate Bernem-specific analytics
-    total_bernem_assets = Asset.objects.filter(office_location='bernem').count()
-    available_bernem_assets = Asset.objects.filter(office_location='bernem', status='available').count()
-    assigned_bernem_assets = Asset.objects.filter(office_location='bernem', status='assigned').count()
-    maintenance_bernem_assets = Asset.objects.filter(office_location='bernem', status='maintenance').count()
-    lost_bernem_assets = Asset.objects.filter(office_location='bernem', status='lost').count()
+    # Calculate Bremen-specific analytics
+    total_bremen_assets = Asset.objects.filter(office_location='bremen').count()
+    available_bremen_assets = Asset.objects.filter(office_location='bremen', status='available').count()
+    assigned_bremen_assets = Asset.objects.filter(office_location='bremen', status='assigned').count()
+    maintenance_bremen_assets = Asset.objects.filter(office_location='bremen', status='maintenance').count()
+    lost_bremen_assets = Asset.objects.filter(office_location='bremen', status='lost').count()
     
     # Add health scores to assets
     for asset in assets:
@@ -704,13 +700,13 @@ def bernem_office_assets(request):
     
     context = {
         'assets': page_obj,
-        'office_name': 'Bernem Office',
+        'office_name': 'Bremen Office',
         'office_color': 'blue',
-        'total_assets': total_bernem_assets,
-        'available_assets': available_bernem_assets,
-        'assigned_assets': assigned_bernem_assets,
-        'maintenance_assets': maintenance_bernem_assets,
-        'lost_assets': lost_bernem_assets,
+        'total_assets': total_bremen_assets,
+        'available_assets': available_bremen_assets,
+        'assigned_assets': assigned_bremen_assets,
+        'maintenance_assets': maintenance_bremen_assets,
+        'lost_assets': lost_bremen_assets,
         'status_filter': status_filter,
         'asset_type_filter': asset_type_filter,
         'search_query': search_query,
@@ -740,6 +736,7 @@ def hamburg_office_assets(request):
         assets = assets.filter(
             Q(name__icontains=search_query) |
             Q(serial_number__icontains=search_query) |
+            Q(st_tag__icontains=search_query) |
             Q(model__icontains=search_query) |
             Q(manufacturer__icontains=search_query) |
             Q(assigned_to__name__icontains=search_query)
@@ -799,6 +796,7 @@ def other_locations_assets(request):
         assets = assets.filter(
             Q(name__icontains=search_query) |
             Q(serial_number__icontains=search_query) |
+            Q(st_tag__icontains=search_query) |
             Q(model__icontains=search_query) |
             Q(manufacturer__icontains=search_query) |
             Q(assigned_to__name__icontains=search_query)
@@ -875,6 +873,7 @@ def unassigned_assets(request):
         unassigned_assets = unassigned_assets.filter(
             Q(name__icontains=search_query) |
             Q(serial_number__icontains=search_query) |
+            Q(st_tag__icontains=search_query) |
             Q(model__icontains=search_query) |
             Q(manufacturer__icontains=search_query)
         )
@@ -930,6 +929,7 @@ def search_assets_for_missing(request):
             assets = assets.filter(
                 Q(name__icontains=search_query) |
                 Q(serial_number__icontains=search_query) |
+                Q(st_tag__icontains=search_query) |
                 Q(model__icontains=search_query) |
                 Q(manufacturer__icontains=search_query)
             )
@@ -1007,11 +1007,12 @@ def add_asset(request):
         name = request.POST.get('name')
         asset_type = request.POST.get('asset_type')
         serial_number = request.POST.get('serial_number')
+        st_tag = request.POST.get('st_tag', '')
         model = request.POST.get('model', '')
         manufacturer = request.POST.get('manufacturer', '')
         purchase_date = request.POST.get('purchase_date')
         status = request.POST.get('status', 'available')  # Default to available if not provided
-        office_location = request.POST.get('office_location', 'bernem')  # Default to bernem if not provided
+        office_location = request.POST.get('office_location', 'bremen')  # Default to bremen if not provided
         assigned_to_id = request.POST.get('assigned_to')
         
         # Software asset fields
@@ -1128,6 +1129,7 @@ def add_asset(request):
                 name=name,
                 asset_type=asset_type,
                 serial_number=serial_number,
+                st_tag=st_tag,
                 model=model,
                 manufacturer=manufacturer,
                 purchase_date=purchase_date,
@@ -1206,6 +1208,7 @@ def edit_asset(request, asset_id):
         name = request.POST.get('name')
         asset_type = request.POST.get('asset_type')
         serial_number = request.POST.get('serial_number')
+        st_tag = request.POST.get('st_tag', '')
         model = request.POST.get('model', '')
         manufacturer = request.POST.get('manufacturer', '')
         purchase_date = request.POST.get('purchase_date')
@@ -1309,19 +1312,24 @@ def edit_asset(request, asset_id):
             asset.name = name
             asset.asset_type = asset_type
             asset.serial_number = serial_number
+            asset.st_tag = st_tag
             asset.model = model
             asset.manufacturer = manufacturer
-            asset.purchase_date = purchase_date
+            if purchase_date:
+                asset.purchase_date = purchase_date
             asset.status = status
             asset.license_key = license_key
             asset.license_type = license_type
             asset.version = version
             asset.vendor = vendor
-            asset.subscription_end = subscription_end
+            if subscription_end:
+                asset.subscription_end = subscription_end
             asset.seats = seats
             asset.used_seats = used_seats
-            asset.maintenance_start_date = maintenance_start_date
-            asset.maintenance_expected_end = maintenance_expected_end
+            if maintenance_start_date:
+                asset.maintenance_start_date = maintenance_start_date
+            if maintenance_expected_end:
+                asset.maintenance_expected_end = maintenance_expected_end
             asset.maintenance_notes = maintenance_notes
             
             # Handle assignment
@@ -2680,6 +2688,7 @@ def assigned_assets(request):
         assigned_assets = assigned_assets.filter(
             Q(name__icontains=search_query) |
             Q(serial_number__icontains=search_query) |
+            Q(st_tag__icontains=search_query) |
             Q(model__icontains=search_query) |
             Q(manufacturer__icontains=search_query) |
             Q(assigned_to__name__icontains=search_query) |
@@ -2756,6 +2765,7 @@ def maintenance_assets(request):
         maintenance_assets = maintenance_assets.filter(
             Q(name__icontains=search_query) |
             Q(serial_number__icontains=search_query) |
+            Q(st_tag__icontains=search_query) |
             Q(model__icontains=search_query) |
             Q(manufacturer__icontains=search_query) |
             Q(assigned_to__name__icontains=search_query)
@@ -2816,6 +2826,7 @@ def lost_assets(request):
         lost_assets = lost_assets.filter(
             Q(name__icontains=search_query) |
             Q(serial_number__icontains=search_query) |
+            Q(st_tag__icontains=search_query) |
             Q(model__icontains=search_query) |
             Q(manufacturer__icontains=search_query) |
             Q(assigned_to__name__icontains=search_query)
@@ -2876,6 +2887,7 @@ def retired_assets(request):
         retired_assets = retired_assets.filter(
             Q(name__icontains=search_query) |
             Q(serial_number__icontains=search_query) |
+            Q(st_tag__icontains=search_query) |
             Q(model__icontains=search_query) |
             Q(manufacturer__icontains=search_query) |
             Q(assigned_to__name__icontains=search_query)
@@ -2937,6 +2949,7 @@ def old_assets(request):
         old_assets = old_assets.filter(
             Q(name__icontains=search_query) |
             Q(serial_number__icontains=search_query) |
+            Q(st_tag__icontains=search_query) |
             Q(model__icontains=search_query) |
             Q(manufacturer__icontains=search_query) |
             Q(assigned_to__name__icontains=search_query)
@@ -3003,6 +3016,7 @@ def healthy_assets(request):
         healthy_assets = [asset for asset in healthy_assets if 
             search_query.lower() in asset.name.lower() or
             search_query.lower() in asset.serial_number.lower() or
+            search_query.lower() in (asset.st_tag or '').lower() or
             search_query.lower() in (asset.model or '').lower() or
             search_query.lower() in (asset.manufacturer or '').lower() or
             (asset.assigned_to and search_query.lower() in asset.assigned_to.name.lower())
@@ -3055,6 +3069,7 @@ def new_assets_view(request):
         new_assets = new_assets.filter(
             Q(name__icontains=search_query) |
             Q(serial_number__icontains=search_query) |
+            Q(st_tag__icontains=search_query) |
             Q(model__icontains=search_query) |
             Q(manufacturer__icontains=search_query) |
             Q(assigned_to__name__icontains=search_query)
@@ -3119,6 +3134,7 @@ def attention_assets(request):
         attention_assets = attention_assets.filter(
             Q(name__icontains=search_query) |
             Q(serial_number__icontains=search_query) |
+            Q(st_tag__icontains=search_query) |
             Q(model__icontains=search_query) |
             Q(manufacturer__icontains=search_query) |
             Q(assigned_to__name__icontains=search_query)
@@ -3231,7 +3247,7 @@ def employee_photo(request, employee_id):
             return HttpResponse(status=404)
             
     except Exception as e:
-        logger.error(f"Error serving photo for employee {employee_id}: {e}")
+        print(f"Error serving photo for employee {employee_id}: {e}")
         return HttpResponse(status=500)
 
 def privacy_policy(request):
@@ -3762,3 +3778,83 @@ This message was sent from the AssetTrack application.
         'user': request.user,
     }
     return render(request, 'contact_support.html', context)
+
+# AI Assistant Views
+@login_required
+def ai_chat(request):
+    """AI Chat interface"""
+    if request.method == 'POST':
+        try:
+            query = request.POST.get('query', '').strip()
+            current_page = request.POST.get('current_page', '')
+            
+            if not query:
+                return JsonResponse({'error': 'Please enter a question'})
+            
+            # Initialize AI assistant
+            ai = AssetTrackAI()
+            
+            # Process query
+            result = ai.process_query(query, current_page, request.user)
+            
+            return JsonResponse({
+                'success': True,
+                'response': result['response'],
+                'search_results': result['search_results']
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'error': f'AI processing error: {str(e)}'
+            })
+    
+    return render(request, 'ai_chat.html')
+
+@login_required
+def ai_quick_insights(request):
+    """Get quick AI insights about the system"""
+    try:
+        ai = AssetTrackAI()
+        insights = ai.get_quick_insights()
+        
+        return JsonResponse({
+            'success': True,
+            'insights': insights
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        })
+
+@login_required
+def ai_search(request):
+    """AI-powered search endpoint"""
+    if request.method == 'GET':
+        query = request.GET.get('q', '').strip()
+        
+        if not query:
+            return JsonResponse({'results': []})
+        
+        try:
+            ai = AssetTrackAI()
+            
+            # Search assets and employees
+            assets = ai.search_assets(query)
+            employees = ai.search_employees(query)
+            
+            return JsonResponse({
+                'success': True,
+                'assets': assets,
+                'employees': employees,
+                'query': query
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'error': str(e)
+            })
+    
+    return JsonResponse({'error': 'Invalid request method'})

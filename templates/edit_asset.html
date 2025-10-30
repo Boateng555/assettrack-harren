@@ -74,6 +74,11 @@
                     </div>
                     
                     <div>
+                        <label for="st_tag" class="block text-sm font-medium text-slate-300 mb-2">ST Tag (Optional)</label>
+                        <input type="text" name="st_tag" id="st_tag" value="{{ asset.st_tag|default:'' }}" class="w-full px-3 py-2 border border-slate-600 rounded-md shadow-sm bg-slate-700 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="Enter ST tag">
+                    </div>
+                    
+                    <div>
                         <label for="model" class="block text-sm font-medium text-slate-300 mb-2">Model (Optional)</label>
                         <input type="text" name="model" id="model" value="{{ asset.model|default:'' }}" class="w-full px-3 py-2 border border-slate-600 rounded-md shadow-sm bg-slate-700 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500">
                     </div>

@@ -176,7 +176,7 @@
                     </div>
                     <nav class="hidden md:block ml-10">
                         <div class="flex space-x-4">
-                            <a href="{% url 'assets:dashboard' %}?office_redirect=false" class="{% if request.resolver_match.url_name == 'dashboard' %}bg-slate-800 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %} px-3 py-2 rounded-md text-sm font-medium">Dashboard</a>
+                            <a href="{% url 'assets:dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}bg-slate-800 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %} px-3 py-2 rounded-md text-sm font-medium">Dashboard</a>
                             <a href="{% url 'assets:employees' %}" class="{% if request.resolver_match.url_name == 'employees' %}bg-slate-800 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %} px-3 py-2 rounded-md text-sm font-medium">Employees</a>
                             <div class="relative group">
                                 <a href="{% url 'assets:assets' %}" class="{% if request.resolver_match.url_name == 'assets' %}bg-slate-800 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %} px-3 py-2 rounded-md text-sm font-medium flex items-center">
@@ -185,7 +185,7 @@
                                 </a>
                                 <div class="absolute left-0 mt-2 w-48 bg-slate-800 rounded-md shadow-lg py-1 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
                                     <a href="{% url 'assets:assets' %}" class="block px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-white">All Assets</a>
-                                    <a href="{% url 'assets:bernem_office_assets' %}" class="block px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-white">Bernem Office Assets</a>
+                                    <a href="{% url 'assets:bremen_office_assets' %}" class="block px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-white">Bremen Office Assets</a>
                                     <a href="{% url 'assets:hamburg_office_assets' %}" class="block px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-white">Hamburg Office Assets</a>
                                     <a href="{% url 'assets:other_locations_assets' %}" class="block px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-white">Other Locations Assets</a>
                                     <div class="border-t border-slate-600 my-1"></div>
@@ -262,6 +262,10 @@
                                             <i data-lucide="mail" class="mr-3 h-5 w-5 text-slate-400"></i>
                                             Contact Support
                                         </a>
+                                        <a href="{% url 'assets:ai_chat' %}" class="flex items-center px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
+                                            <i data-lucide="bot" class="mr-3 h-5 w-5 text-slate-400"></i>
+                                            AI Assistant
+                                        </a>
                                     </div>
                                 </div>
                             </div>
@@ -325,7 +329,7 @@
         <!-- Mobile menu -->
         <div class="md:hidden hidden" id="mobile-menu">
             <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-                <a href="{% url 'assets:dashboard' %}?office_redirect=false" class="{% if request.resolver_match.url_name == 'dashboard' %}bg-slate-800 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %} block px-3 py-2 rounded-md text-base font-medium">Dashboard</a>
+                <a href="{% url 'assets:dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}bg-slate-800 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %} block px-3 py-2 rounded-md text-base font-medium">Dashboard</a>
                 <a href="{% url 'assets:employees' %}" class="{% if request.resolver_match.url_name == 'employees' %}bg-slate-800 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %} block px-3 py-2 rounded-md text-base font-medium">Employees</a>
                 <a href="{% url 'assets:assets' %}" class="{% if request.resolver_match.url_name == 'assets' %}bg-slate-800 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %} block px-3 py-2 rounded-md text-base font-medium">Assets</a>
                 <a href="{% url 'assets:handovers' %}" class="{% if request.resolver_match.url_name == 'handovers' %}bg-slate-800 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %} block px-3 py-2 rounded-md text-base font-medium">Handovers</a>
@@ -701,6 +705,250 @@
                     });
             }
         });
+    </script>
+
+    <!-- AI Assistant Floating Button -->
+    <div id="ai-assistant-btn" class="fixed bottom-6 right-6 z-50">
+        <button 
+            onclick="toggleAIChat()" 
+            class="w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center group"
+            title="AI Assistant"
+        >
+            <i data-lucide="message-circle" class="h-6 w-6 group-hover:scale-110 transition-transform"></i>
+        </button>
+    </div>
+
+    <!-- AI Chat Modal -->
+    <div id="ai-chat-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-slate-800 rounded-xl shadow-2xl w-full max-w-2xl max-h-96">
+                <!-- Modal Header -->
+                <div class="px-6 py-4 border-b border-slate-700 flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-white">AI Assistant</h3>
+                    <button onclick="toggleAIChat()" class="text-slate-400 hover:text-white">
+                        <i data-lucide="x" class="h-5 w-5"></i>
+                    </button>
+                </div>
+                
+                <!-- Modal Content -->
+                <div class="p-6">
+                    <div class="h-64 overflow-y-auto mb-4" id="modal-chat-messages">
+                        <div class="flex items-start space-x-3">
+                            <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                                <i data-lucide="bot" class="h-4 w-4 text-white"></i>
+                            </div>
+                            <div class="bg-slate-700 rounded-lg p-3 max-w-md">
+                                <p class="text-white text-sm">How can I help you today?</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <form id="modal-chat-form" class="flex space-x-3">
+                        <input 
+                            type="text" 
+                            id="modal-chat-input" 
+                            placeholder="Ask me anything about AssetTrack..." 
+                            class="flex-1 px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            autocomplete="off"
+                        >
+                        <button 
+                            type="submit" 
+                            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                            <i data-lucide="send" class="h-4 w-4"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Assistant JavaScript -->
+    <script>
+        // AI Chat functionality
+        let isTyping = false;
+
+        // Modal chat form
+        document.getElementById('modal-chat-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            sendMessage('modal-chat-input', 'modal-chat-messages');
+        });
+
+        function sendMessage(inputId, messagesId) {
+            const input = document.getElementById(inputId);
+            const messagesContainer = document.getElementById(messagesId);
+            const message = input.value.trim();
+            
+            if (!message || isTyping) return;
+            
+            // Add user message
+            addMessage(messagesContainer, message, 'user');
+            input.value = '';
+            
+            // Show typing indicator
+            showTypingIndicator(messagesContainer);
+            
+            // Send to AI
+            fetch('{% url "assets:ai_chat" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: `query=${encodeURIComponent(message)}&current_page=${window.location.pathname}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideTypingIndicator(messagesContainer);
+                
+                if (data.success) {
+                    addMessage(messagesContainer, data.response, 'ai');
+                    
+                    // Show search results if any
+                    if (data.search_results && (data.search_results.assets.length > 0 || data.search_results.employees.length > 0)) {
+                        showSearchResults(messagesContainer, data.search_results);
+                    }
+                } else {
+                    addMessage(messagesContainer, `Error: ${data.error}`, 'ai', true);
+                }
+            })
+            .catch(error => {
+                hideTypingIndicator(messagesContainer);
+                addMessage(messagesContainer, `Error: ${error.message}`, 'ai', true);
+            });
+        }
+
+        function addMessage(container, message, sender, isError = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `flex items-start space-x-3 ${sender === 'user' ? 'justify-end' : ''}`;
+            
+            if (sender === 'user') {
+                messageDiv.innerHTML = `
+                    <div class="bg-blue-600 rounded-lg p-3 max-w-md">
+                        <p class="text-white text-sm">${escapeHtml(message)}</p>
+                    </div>
+                    <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                        <i data-lucide="user" class="h-4 w-4 text-white"></i>
+                    </div>
+                `;
+            } else {
+                const iconClass = isError ? 'alert-circle' : 'bot';
+                const bgClass = isError ? 'bg-red-600' : 'bg-slate-700';
+                messageDiv.innerHTML = `
+                    <div class="w-8 h-8 ${isError ? 'bg-red-600' : 'bg-blue-600'} rounded-full flex items-center justify-center">
+                        <i data-lucide="${iconClass}" class="h-4 w-4 text-white"></i>
+                    </div>
+                    <div class="${bgClass} rounded-lg p-3 max-w-md">
+                        <p class="text-white text-sm">${escapeHtml(message)}</p>
+                    </div>
+                `;
+            }
+            
+            container.appendChild(messageDiv);
+            container.scrollTop = container.scrollHeight;
+            
+            // Re-initialize Lucide icons
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        }
+
+        function showTypingIndicator(container) {
+            isTyping = true;
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'flex items-start space-x-3 typing-indicator';
+            typingDiv.innerHTML = `
+                <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                    <i data-lucide="bot" class="h-4 w-4 text-white"></i>
+                </div>
+                <div class="bg-slate-700 rounded-lg p-3 max-w-md">
+                    <div class="flex space-x-1">
+                        <div class="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></div>
+                        <div class="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+                        <div class="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+                    </div>
+                </div>
+            `;
+            container.appendChild(typingDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function hideTypingIndicator(container) {
+            isTyping = false;
+            const typingIndicator = container.querySelector('.typing-indicator');
+            if (typingIndicator) {
+                typingIndicator.remove();
+            }
+        }
+
+        function showSearchResults(container, results) {
+            if (results.assets.length > 0) {
+                const assetsDiv = document.createElement('div');
+                assetsDiv.className = 'mt-2 p-3 bg-slate-600 rounded-lg';
+                assetsDiv.innerHTML = `
+                    <h4 class="text-white text-sm font-medium mb-2">Found ${results.assets.length} assets:</h4>
+                    <div class="space-y-1">
+                        ${results.assets.slice(0, 3).map(asset => `
+                            <div class="text-xs text-slate-300">
+                                ${asset.name} (${asset.serial_number}) - ${asset.asset_type}
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                container.appendChild(assetsDiv);
+            }
+            
+            if (results.employees.length > 0) {
+                const employeesDiv = document.createElement('div');
+                employeesDiv.className = 'mt-2 p-3 bg-slate-600 rounded-lg';
+                employeesDiv.innerHTML = `
+                    <h4 class="text-white text-sm font-medium mb-2">Found ${results.employees.length} employees:</h4>
+                    <div class="space-y-1">
+                        ${results.employees.slice(0, 3).map(emp => `
+                            <div class="text-xs text-slate-300">
+                                ${emp.name} - ${emp.department}
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                container.appendChild(employeesDiv);
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // Toggle AI chat modal
+        function toggleAIChat() {
+            const modal = document.getElementById('ai-chat-modal');
+            const btn = document.getElementById('ai-assistant-btn');
+            
+            if (modal.classList.contains('hidden')) {
+                modal.classList.remove('hidden');
+                btn.classList.add('hidden');
+            } else {
+                modal.classList.add('hidden');
+                btn.classList.remove('hidden');
+            }
+        }
     </script>
 </body>
 </html>
