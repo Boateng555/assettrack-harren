@@ -30,10 +30,23 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-h-pd1d97vy_o%26m^#4s%@oao(
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True  # Force debug mode to see errors
 
-ALLOWED_HOSTS = ['*']  # Allow all hosts for debugging
+# Allowed hosts (explicit for security; include IP and domain)
+ALLOWED_HOSTS = [
+    '172.27.2.43',
+    'asset-track.harren-group.com',
+    'localhost',
+    '127.0.0.1',
+]
 
 # CSRF settings
-CSRF_TRUSTED_ORIGINS = ['http://172.27.2.43', 'https://172.27.2.43', 'http://localhost', 'https://localhost']
+CSRF_TRUSTED_ORIGINS = [
+    'http://172.27.2.43',
+    'https://172.27.2.43',
+    'http://asset-track.harren-group.com',
+    'https://asset-track.harren-group.com',
+    'http://localhost',
+    'https://localhost',
+]
 
 
 # Application definition
@@ -185,7 +198,7 @@ AZURE_CLIENT_ID = os.getenv('AZURE_CLIENT_ID')
 AZURE_CLIENT_SECRET = os.getenv('AZURE_CLIENT_SECRET')
 
 # Email domain for production (used in email links)
-EMAIL_DOMAIN = '172.27.2.43'
+EMAIL_DOMAIN = 'asset-track.harren-group.com'
 
 # Support email settings
 SUPPORT_EMAIL = 'it-office-assettrack@harren-group.com'
