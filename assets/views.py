@@ -3780,13 +3780,28 @@ This message was sent from the AssetTrack application.
     return render(request, 'contact_support.html', context)
 
 # AI Assistant Views
+from django.views.decorators.csrf import csrf_exempt
+
+@csrf_exempt
 @login_required
 def ai_chat(request):
     """AI Chat interface"""
     if request.method == 'POST':
         try:
-            query = request.POST.get('query', '').strip()
-            current_page = request.POST.get('current_page', '')
+            # Support both JSON and form-encoded payloads
+            query = ''
+            current_page = ''
+            if request.content_type and 'application/json' in request.content_type:
+                try:
+                    import json as _json
+                    body = _json.loads(request.body or '{}')
+                    query = (body.get('message') or body.get('query') or '').strip()
+                    current_page = body.get('current_page', '')
+                except Exception:
+                    query = ''
+            else:
+                query = (request.POST.get('message') or request.POST.get('query') or '').strip()
+                current_page = request.POST.get('current_page', '')
             
             if not query:
                 return JsonResponse({'error': 'Please enter a question'})
