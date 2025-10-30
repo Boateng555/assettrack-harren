@@ -3783,7 +3783,6 @@ This message was sent from the AssetTrack application.
 from django.views.decorators.csrf import csrf_exempt
 
 @csrf_exempt
-@login_required
 def ai_chat(request):
     """AI Chat interface"""
     if request.method == 'POST':
