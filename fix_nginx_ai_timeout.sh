@@ -20,15 +20,12 @@ echo "📁 Found config file: $CONFIG_FILE"
 cp "$CONFIG_FILE" "${CONFIG_FILE}.backup.$(date +%Y%m%d_%H%M%S)"
 echo "✅ Backup created"
 
-# Check if timeouts already exist
-if grep -q "proxy_read_timeout" "$CONFIG_FILE"; then
-    echo "⚠️  Timeout settings already exist, updating..."
-    # Remove existing timeout lines
-    sed -i '/proxy_connect_timeout/d' "$CONFIG_FILE"
-    sed -i '/proxy_send_timeout/d' "$CONFIG_FILE"
-    sed -i '/proxy_read_timeout/d' "$CONFIG_FILE"
-    sed -i '/proxy_buffering off/d' "$CONFIG_FILE"
-fi
+# Remove ALL existing proxy timeout and buffering lines to avoid duplicates
+echo "🧹 Cleaning up existing proxy settings..."
+sed -i '/proxy_connect_timeout/d' "$CONFIG_FILE"
+sed -i '/proxy_send_timeout/d' "$CONFIG_FILE"
+sed -i '/proxy_read_timeout/d' "$CONFIG_FILE"
+sed -i '/proxy_buffering/d' "$CONFIG_FILE"  # Remove ALL proxy_buffering lines (on, off, etc.)
 
 # Find the proxy_pass line and add timeouts after it
 if grep -q "proxy_pass http://127.0.0.1:8000" "$CONFIG_FILE"; then
