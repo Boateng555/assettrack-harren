@@ -202,7 +202,7 @@ class AssetTrackAI:
             response = requests.post(
                 f"{self.ollama_url}/api/chat",
                 json=ollama_payload,
-                timeout=30
+                timeout=120  # Increased timeout for CPU-only Ollama (matches Nginx timeout)
             )
             
             if response.status_code == 200:
