@@ -185,29 +185,29 @@ class AssetTrackAI:
             Please provide a helpful response about the AssetTrack system, assets, employees, or any related information.
             """
             
-            # Call Ollama API
+            # Call Ollama API - use /api/generate which is more reliable
+            # Combine system prompt and user message for generate endpoint
+            full_prompt = f"{self.system_prompt}\n\nUser Query: {user_query}"
+            
             ollama_payload = {
                 "model": self.model_name,
-                "messages": [
-                    {"role": "system", "content": self.system_prompt},
-                    {"role": "user", "content": user_message}
-                ],
+                "prompt": full_prompt,
                 "stream": False,
                 "options": {
                     "temperature": 0.7,
-                    "max_tokens": 500
+                    "num_predict": 500  # Use num_predict instead of max_tokens for generate endpoint
                 }
             }
             
             response = requests.post(
-                f"{self.ollama_url}/api/chat",
+                f"{self.ollama_url}/api/generate",
                 json=ollama_payload,
                 timeout=120  # Increased timeout for CPU-only Ollama (matches Nginx timeout)
             )
             
             if response.status_code == 200:
                 result = response.json()
-                ai_response = result.get('message', {}).get('content', 'I apologize, but I could not generate a response.')
+                ai_response = result.get('response', 'I apologize, but I could not generate a response.')
             else:
                 ai_response = f"I apologize, but I encountered an error with the AI service (Status: {response.status_code}). Please try again."
             
